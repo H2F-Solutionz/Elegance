@@ -57,17 +57,19 @@ const Footer: React.FC = () => {
                   </div>
                 </button>
               </DialogTrigger>
-              <DialogContent className="max-w-md p-0 overflow-hidden">
-                <DialogClose className="absolute right-3 top-3 z-10 rounded-full bg-background/80 p-2 opacity-90 ring-offset-background transition-opacity hover:opacity-100 hover:bg-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2">
+              <DialogContent className="max-w-sm p-6 flex flex-col items-center">
+                <DialogClose className="absolute right-3 top-3 z-10 rounded-full bg-charcoal/80 p-2 text-cream hover:bg-charcoal focus:outline-none focus:ring-2 focus:ring-primary">
                   <X className="h-5 w-5" />
                   <span className="sr-only">Close</span>
                 </DialogClose>
-                <img
-                  src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=600"
-                  alt="Lajithan - Founder"
-                  className="w-full h-auto"
-                />
-                <div className="p-6">
+                <div className="h-48 w-48 rounded-full overflow-hidden border-4 border-primary shadow-lg">
+                  <img
+                    src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=600"
+                    alt="Lajithan - Founder"
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+                <div className="text-center mt-4">
                   <h4 className="font-serif text-xl font-bold mb-2">Lajithan</h4>
                   <p className="text-muted-foreground text-sm">
                     With over 20 years of experience in jewelry design, Lajithan founded Elegance 
