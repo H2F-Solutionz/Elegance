@@ -57,7 +57,7 @@ const Footer: React.FC = () => {
                   </div>
                 </button>
               </DialogTrigger>
-              <DialogContent className="max-w-sm p-6 flex flex-col items-center">
+              <DialogContent className="max-w-xs p-6 flex flex-col items-center">
                 <DialogClose className="absolute right-3 top-3 z-10 rounded-full bg-charcoal/80 p-2 text-cream hover:bg-charcoal focus:outline-none focus:ring-2 focus:ring-primary">
                   <X className="h-5 w-5" />
                   <span className="sr-only">Close</span>
@@ -68,13 +68,6 @@ const Footer: React.FC = () => {
                     alt="Lajithan - Founder"
                     className="w-full h-full object-cover"
                   />
-                </div>
-                <div className="text-center mt-4">
-                  <h4 className="font-serif text-xl font-bold mb-2">Lajithan</h4>
-                  <p className="text-muted-foreground text-sm">
-                    With over 20 years of experience in jewelry design, Lajithan founded Elegance 
-                    to bring traditional craftsmanship to modern jewelry lovers.
-                  </p>
                 </div>
               </DialogContent>
             </Dialog>
