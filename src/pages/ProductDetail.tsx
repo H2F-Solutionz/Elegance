@@ -1,14 +1,18 @@
 import React, { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
-import { ChevronLeft, Star, Minus, Plus, ShoppingBag, Heart, Share2, Truck, Shield, RefreshCw } from 'lucide-react';
+import { ChevronLeft, Star, Minus, Plus, ShoppingBag, Heart, Share2, Truck, Shield, RefreshCw, MapPin, CreditCard } from 'lucide-react';
 import Navbar from '@/components/layout/Navbar';
 import Footer from '@/components/layout/Footer';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { getProductById, getByCategory } from '@/data/products';
 import { useCart } from '@/contexts/CartContext';
 import { toast } from '@/hooks/use-toast';
 import ProductCard from '@/components/products/ProductCard';
+import { supabase } from '@/integrations/supabase/client';
 
 const ProductDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -16,6 +20,16 @@ const ProductDetail: React.FC = () => {
   const [quantity, setQuantity] = useState(1);
   const [selectedImage, setSelectedImage] = useState(0);
   const { addToCart } = useCart();
+  
+  // Buy Now modal state
+  const [isBuyNowOpen, setIsBuyNowOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [formData, setFormData] = useState({
+    deliveryAddress: '',
+    billingAddress: '',
+    phone: '',
+    email: '',
+  });
 
   if (!product) {
     return (
@@ -47,6 +61,75 @@ const ProductDetail: React.FC = () => {
 
   const handleQuantityChange = (delta: number) => {
     setQuantity(prev => Math.max(1, prev + delta));
+  };
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleBuyNow = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    // Basic validation
+    if (!formData.deliveryAddress || !formData.billingAddress || !formData.phone || !formData.email) {
+      toast({
+        title: "Missing information",
+        description: "Please fill in all required fields.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(formData.email)) {
+      toast({
+        title: "Invalid email",
+        description: "Please enter a valid email address.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      const totalAmount = product.price * quantity;
+      
+      const { error } = await supabase.functions.invoke('send-order-confirmation', {
+        body: {
+          email: formData.email,
+          phone: formData.phone,
+          deliveryAddress: formData.deliveryAddress,
+          billingAddress: formData.billingAddress,
+          productName: product.name,
+          quantity: quantity,
+          totalAmount: totalAmount,
+        },
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      toast({
+        title: "Order placed successfully!",
+        description: "A confirmation email has been sent to your email address.",
+      });
+      
+      setIsBuyNowOpen(false);
+      setFormData({ deliveryAddress: '', billingAddress: '', phone: '', email: '' });
+    } catch (error: any) {
+      console.error('Error placing order:', error);
+      toast({
+        title: "Order failed",
+        description: "There was an error placing your order. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -154,6 +237,22 @@ const ProductDetail: React.FC = () => {
                   {product.description}
                 </p>
 
+                {/* Delivery Info */}
+                <div className="p-4 rounded-lg bg-primary/5 border border-primary/20">
+                  <div className="flex items-start gap-3">
+                    <MapPin className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
+                    <div>
+                      <h4 className="font-semibold text-foreground mb-1">Delivery Information</h4>
+                      <p className="text-sm text-muted-foreground">
+                        <span className="font-medium text-primary">One-day delivery</span> available for all orders within Jaffna.
+                      </p>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        For locations outside Jaffna, delivery takes <span className="font-medium">3 to 5 days</span>.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
                 {/* Specs */}
                 {(product.material || product.weight) && (
                   <div className="grid grid-cols-2 gap-4 py-4 border-y border-border">
@@ -206,6 +305,18 @@ const ProductDetail: React.FC = () => {
                     <ShoppingBag className="h-5 w-5" />
                     Add to Cart
                   </Button>
+                  <Button
+                    variant="gold-outline"
+                    size="xl"
+                    className="flex-1 gap-2"
+                    onClick={() => setIsBuyNowOpen(true)}
+                  >
+                    <CreditCard className="h-5 w-5" />
+                    Buy Now
+                  </Button>
+                </div>
+                
+                <div className="flex gap-4">
                   <Button variant="outline" size="xl">
                     <Heart className="h-5 w-5" />
                   </Button>
@@ -248,6 +359,98 @@ const ProductDetail: React.FC = () => {
 
         <Footer />
       </div>
+
+      {/* Buy Now Modal */}
+      <Dialog open={isBuyNowOpen} onOpenChange={setIsBuyNowOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="font-serif text-xl">Complete Your Order</DialogTitle>
+            <DialogDescription>
+              Fill in your details to place your order for {product.name}
+            </DialogDescription>
+          </DialogHeader>
+          
+          <form onSubmit={handleBuyNow} className="space-y-4 mt-4">
+            <div className="p-3 rounded-lg bg-muted">
+              <div className="flex justify-between items-center">
+                <span className="font-medium">{product.name}</span>
+                <span className="text-primary font-bold">₹{(product.price * quantity).toLocaleString()}</span>
+              </div>
+              <p className="text-sm text-muted-foreground">Quantity: {quantity}</p>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="deliveryAddress">Delivery Address *</Label>
+              <Input
+                id="deliveryAddress"
+                name="deliveryAddress"
+                placeholder="Enter your delivery address"
+                value={formData.deliveryAddress}
+                onChange={handleInputChange}
+                required
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="billingAddress">Billing Address *</Label>
+              <Input
+                id="billingAddress"
+                name="billingAddress"
+                placeholder="Enter your billing address"
+                value={formData.billingAddress}
+                onChange={handleInputChange}
+                required
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="phone">Phone Number *</Label>
+              <Input
+                id="phone"
+                name="phone"
+                type="tel"
+                placeholder="Enter your phone number"
+                value={formData.phone}
+                onChange={handleInputChange}
+                required
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="email">Email Address *</Label>
+              <Input
+                id="email"
+                name="email"
+                type="email"
+                placeholder="Enter your email address"
+                value={formData.email}
+                onChange={handleInputChange}
+                required
+              />
+            </div>
+
+            <div className="p-3 rounded-lg bg-primary/5 border border-primary/20 text-sm">
+              <p className="flex items-center gap-2">
+                <MapPin className="h-4 w-4 text-primary" />
+                <span><strong>Jaffna:</strong> One-day delivery</span>
+              </p>
+              <p className="flex items-center gap-2 mt-1">
+                <Truck className="h-4 w-4 text-primary" />
+                <span><strong>Other areas:</strong> 3-5 days delivery</span>
+              </p>
+            </div>
+
+            <Button
+              type="submit"
+              variant="gold"
+              className="w-full"
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? 'Placing Order...' : 'Place Order'}
+            </Button>
+          </form>
+        </DialogContent>
+      </Dialog>
     </>
   );
 };

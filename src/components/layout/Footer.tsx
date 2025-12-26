@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Facebook, Instagram, Twitter, Youtube, Mail, Phone, MapPin } from 'lucide-react';
-import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
+import { Facebook, Instagram, Twitter, Youtube, Mail, Phone, MapPin, X } from 'lucide-react';
+import { Dialog, DialogContent, DialogTrigger, DialogClose } from '@/components/ui/dialog';
 
 const Footer: React.FC = () => {
   const [isOwnerModalOpen, setIsOwnerModalOpen] = useState(false);
@@ -52,21 +52,25 @@ const Footer: React.FC = () => {
                     />
                   </div>
                   <div className="text-left">
-                    <p className="font-medium text-sm">Priya Sharma</p>
-                    <p className="text-xs text-cream/60">Founder & Designer</p>
+                    <p className="font-medium text-sm">Lajithan</p>
+                    <p className="text-xs text-cream/60">Founder</p>
                   </div>
                 </button>
               </DialogTrigger>
               <DialogContent className="max-w-md p-0 overflow-hidden">
+                <DialogClose className="absolute right-3 top-3 z-10 rounded-full bg-background/80 p-2 opacity-90 ring-offset-background transition-opacity hover:opacity-100 hover:bg-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2">
+                  <X className="h-5 w-5" />
+                  <span className="sr-only">Close</span>
+                </DialogClose>
                 <img
                   src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=600"
-                  alt="Priya Sharma - Founder"
+                  alt="Lajithan - Founder"
                   className="w-full h-auto"
                 />
                 <div className="p-6">
-                  <h4 className="font-serif text-xl font-bold mb-2">Priya Sharma</h4>
+                  <h4 className="font-serif text-xl font-bold mb-2">Lajithan</h4>
                   <p className="text-muted-foreground text-sm">
-                    With over 20 years of experience in jewelry design, Priya founded Elegance 
+                    With over 20 years of experience in jewelry design, Lajithan founded Elegance 
                     to bring traditional craftsmanship to modern jewelry lovers.
                   </p>
                 </div>
