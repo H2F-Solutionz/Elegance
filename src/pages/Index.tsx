@@ -5,30 +5,6 @@ import Footer from '@/components/layout/Footer';
 import HeroCarousel from '@/components/home/HeroCarousel';
 import ProductSection from '@/components/home/ProductSection';
 import { getHotSales, getLatestArrivals } from '@/data/products';
-import { Sparkles, Truck, Shield, RefreshCw } from 'lucide-react';
-
-const features = [
-  {
-    icon: Sparkles,
-    title: 'Premium Quality',
-    description: 'Certified 22K gold and genuine diamonds',
-  },
-  {
-    icon: Truck,
-    title: 'Free Shipping',
-    description: 'On orders above ₹5000',
-  },
-  {
-    icon: Shield,
-    title: 'Secure Payment',
-    description: '100% secure transactions',
-  },
-  {
-    icon: RefreshCw,
-    title: 'Easy Returns',
-    description: '30-day hassle-free returns',
-  },
-];
 
 const Index: React.FC = () => {
   const hotSales = getHotSales();
@@ -50,29 +26,6 @@ const Index: React.FC = () => {
         <main className="flex-1">
           {/* Hero Section */}
           <HeroCarousel />
-
-          {/* Features Bar */}
-          <section className="bg-muted py-6 border-y border-border">
-            <div className="container mx-auto px-4">
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-                {features.map((feature) => (
-                  <div key={feature.title} className="flex items-center gap-3">
-                    <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-                      <feature.icon className="h-6 w-6 text-primary" />
-                    </div>
-                    <div>
-                      <h3 className="font-sans text-sm font-semibold text-foreground">
-                        {feature.title}
-                      </h3>
-                      <p className="font-sans text-xs text-muted-foreground">
-                        {feature.description}
-                      </p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </section>
 
           {/* Hot Sales Section */}
           <ProductSection
