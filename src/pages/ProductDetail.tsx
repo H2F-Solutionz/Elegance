@@ -10,10 +10,8 @@ import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { getProductById, getByCategory } from '@/data/products';
 import { useCart } from '@/contexts/CartContext';
-import { useAuth } from '@/hooks/useAuth';
 import { toast } from '@/hooks/use-toast';
 import ProductCard from '@/components/products/ProductCard';
-import ProductReviews from '@/components/reviews/ProductReviews';
 import { supabase } from '@/integrations/supabase/client';
 
 const ProductDetail: React.FC = () => {
@@ -22,7 +20,6 @@ const ProductDetail: React.FC = () => {
   const [quantity, setQuantity] = useState(1);
   const [selectedImage, setSelectedImage] = useState(0);
   const { addToCart } = useCart();
-  const { user } = useAuth();
   
   // Buy Now modal state
   const [isBuyNowOpen, setIsBuyNowOpen] = useState(false);
@@ -100,26 +97,6 @@ const ProductDetail: React.FC = () => {
     try {
       const totalAmount = product.price * quantity;
       
-      // If user is logged in, save order to database
-      if (user) {
-        const { error: orderError } = await supabase
-          .from('orders')
-          .insert({
-            user_id: user.id,
-            product_id: product.id,
-            quantity: quantity,
-            total_amount: totalAmount,
-            status: 'pending',
-            delivery_address: formData.deliveryAddress,
-            phone: formData.phone,
-            email: formData.email,
-          });
-
-        if (orderError) {
-          console.error('Error saving order:', orderError);
-        }
-      }
-
       const { error } = await supabase.functions.invoke('send-order-confirmation', {
         body: {
           email: formData.email,
@@ -365,11 +342,6 @@ const ProductDetail: React.FC = () => {
                 </div>
               </div>
             </div>
-          </section>
-
-          {/* Reviews Section */}
-          <section className="container mx-auto px-4 py-12 border-t border-border">
-            <ProductReviews productId={product.id} />
           </section>
 
           {/* Related Products */}

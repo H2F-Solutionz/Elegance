@@ -43,7 +43,7 @@ const Cart: React.FC = () => {
   return (
     <>
       <Helmet>
-        <title>{`Shopping Cart (${totalItems} items) - Elegance Jewelry`}</title>
+        <title>Shopping Cart ({totalItems} items) - Elegance Jewelry</title>
       </Helmet>
 
       <div className="min-h-screen flex flex-col">
