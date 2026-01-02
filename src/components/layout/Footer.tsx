@@ -85,43 +85,70 @@ const Footer: React.FC = () => {
               </div>
             </button>
 
-            {/* Enhanced Owner Modal */}
+            {/* Enhanced Owner Modal with perfect centering */}
             {isOwnerModalOpen && (
               <div 
-                className="fixed inset-0 z-50 flex items-center justify-center"
+                className="fixed top-0 left-0 right-0 bottom-0 z-50 flex items-center justify-center p-4"
+                role="dialog"
+                aria-modal="true"
+                aria-label="Profile image enlarged view"
                 onClick={() => setIsOwnerModalOpen(false)}
               >
-                {/* Backdrop with blur */}
+                {/* Backdrop with blur - full viewport coverage */}
                 <div 
-                  className="absolute inset-0 bg-charcoal/80 backdrop-blur-md animate-fade-in"
-                  style={{ animationDuration: '0.3s' }}
+                  className="fixed top-0 left-0 right-0 bottom-0 bg-charcoal/85 backdrop-blur-lg transition-opacity duration-300 ease-in-out"
+                  style={{ opacity: 1 }}
+                  aria-hidden="true"
                 />
                 
-                {/* Enlarged circular image */}
+                {/* Enlarged circular image - perfectly centered */}
                 <div 
-                  className="relative z-10 animate-scale-in"
-                  style={{ animationDuration: '0.4s', animationTimingFunction: 'cubic-bezier(0.34, 1.56, 0.64, 1)' }}
+                  className="relative z-10 transition-all duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)] transform"
+                  style={{
+                    animation: 'profileZoomIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards'
+                  }}
                   onClick={(e) => e.stopPropagation()}
                 >
-                  <div className="w-[70vw] h-[70vw] max-w-[400px] max-h-[400px] md:w-[50vw] md:h-[50vw] md:max-w-[500px] md:max-h-[500px] lg:max-w-[550px] lg:max-h-[550px] rounded-full overflow-hidden border-4 border-primary shadow-2xl shadow-primary/30">
+                  {/* Size: Extra large on desktop, proportional on mobile, always fits viewport */}
+                  <div 
+                    className="w-[80vmin] h-[80vmin] max-w-[600px] max-h-[600px] md:w-[70vmin] md:h-[70vmin] lg:w-[60vmin] lg:h-[60vmin] lg:max-w-[650px] lg:max-h-[650px] rounded-full overflow-hidden border-4 border-primary shadow-2xl"
+                    style={{ 
+                      boxShadow: '0 0 60px rgba(212, 175, 55, 0.4), 0 25px 50px -12px rgba(0, 0, 0, 0.5)' 
+                    }}
+                  >
                     <img
                       src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=800"
-                      alt="Lajithan - Founder"
+                      alt="Lajithan - Founder of Elegance Jewelry"
                       className="w-full h-full object-cover"
                     />
                   </div>
                   
-                  {/* Close button on top-right edge */}
+                  {/* Close button on top-right edge, slightly overlapping */}
                   <button
                     onClick={() => setIsOwnerModalOpen(false)}
-                    className="absolute -top-2 -right-2 md:top-2 md:right-2 w-10 h-10 md:w-12 md:h-12 rounded-full bg-charcoal border-2 border-primary text-cream flex items-center justify-center hover:bg-primary hover:text-primary-foreground transition-all duration-300 shadow-lg hover:scale-110"
-                    aria-label="Close"
+                    className="absolute top-[5%] right-[5%] translate-x-1/4 -translate-y-1/4 w-11 h-11 md:w-12 md:h-12 rounded-full bg-charcoal/95 border-2 border-primary text-cream flex items-center justify-center hover:bg-primary hover:text-primary-foreground transition-all duration-300 shadow-xl hover:scale-110 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-charcoal"
+                    aria-label="Close profile image"
+                    autoFocus
                   >
                     <X className="h-5 w-5 md:h-6 md:w-6" />
                   </button>
                 </div>
               </div>
             )}
+
+            {/* Keyframe animation for zoom effect */}
+            <style>{`
+              @keyframes profileZoomIn {
+                0% {
+                  opacity: 0;
+                  transform: scale(0.3);
+                }
+                100% {
+                  opacity: 1;
+                  transform: scale(1);
+                }
+              }
+            `}</style>
           </div>
 
           {/* Quick Links */}
