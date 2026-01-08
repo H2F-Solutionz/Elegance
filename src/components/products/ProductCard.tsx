@@ -6,6 +6,7 @@ import { Product } from '@/data/products';
 import { useCart } from '@/contexts/CartContext';
 import { toast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
+import ImageMagnifier from './ImageMagnifier';
 
 interface ProductCardProps {
   product: Product;
@@ -39,11 +40,12 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, className }) => {
     >
       {/* Image Container */}
       <div className="relative aspect-square overflow-hidden bg-muted">
-        <img
+        <ImageMagnifier
           src={product.image}
           alt={product.name}
-          className="w-full h-full object-cover transform group-hover:scale-125 transition-transform duration-700 ease-out"
-          loading="lazy"
+          className="w-full h-full"
+          magnifierSize={100}
+          zoomLevel={2.5}
         />
         
         {/* Badges */}
