@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { ChevronLeft, Star, Minus, Plus, ShoppingBag, Heart, Share2, Truck, Shield, RefreshCw, MapPin, CreditCard } from 'lucide-react';
@@ -21,6 +21,11 @@ const ProductDetail: React.FC = () => {
   const [quantity, setQuantity] = useState(1);
   const [selectedImage, setSelectedImage] = useState(0);
   const { addToCart } = useCart();
+
+  // Scroll to top on mount
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [id]);
   
   // Buy Now modal state
   const [isBuyNowOpen, setIsBuyNowOpen] = useState(false);
