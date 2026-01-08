@@ -12,6 +12,7 @@ import { getProductById, getByCategory } from '@/data/products';
 import { useCart } from '@/contexts/CartContext';
 import { toast } from '@/hooks/use-toast';
 import ProductCard from '@/components/products/ProductCard';
+import ImageMagnifier from '@/components/products/ImageMagnifier';
 import { supabase } from '@/integrations/supabase/client';
 
 const ProductDetail: React.FC = () => {
@@ -160,10 +161,12 @@ const ProductDetail: React.FC = () => {
               {/* Images */}
               <div className="space-y-4">
                 <div className="aspect-square rounded-xl overflow-hidden bg-muted">
-                  <img
+                  <ImageMagnifier
                     src={images[selectedImage]}
                     alt={product.name}
-                    className="w-full h-full object-cover"
+                    className="w-full h-full"
+                    magnifierSize={180}
+                    zoomLevel={3}
                   />
                 </div>
                 {images.length > 1 && (
