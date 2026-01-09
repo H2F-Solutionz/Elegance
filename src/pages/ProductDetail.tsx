@@ -170,8 +170,7 @@ const ProductDetail: React.FC = () => {
                     src={images[selectedImage]}
                     alt={product.name}
                     className="w-full h-full"
-                    magnifierSize={180}
-                    zoomLevel={3}
+                    maxZoom={5}
                   />
                 </div>
                 {images.length > 1 && (
