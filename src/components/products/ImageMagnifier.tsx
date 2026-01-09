@@ -13,8 +13,8 @@ const ImageMagnifier: React.FC<ImageMagnifierProps> = ({
   src,
   alt,
   className,
-  magnifierSize = 150,
-  zoomLevel = 3,
+  magnifierSize = 200,
+  zoomLevel = 5,
 }) => {
   const [showMagnifier, setShowMagnifier] = useState(false);
   const [magnifierPosition, setMagnifierPosition] = useState({ x: 0, y: 0 });
