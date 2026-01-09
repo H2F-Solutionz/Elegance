@@ -1,13 +1,12 @@
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { cn } from '@/lib/utils';
 
 interface ImageMagnifierProps {
   src: string;
-  hdSrc?: string; // Optional ultra-HD source for zoom
+  hdSrc?: string;
   alt: string;
   className?: string;
-  magnifierSize?: number;
-  zoomLevel?: number;
+  maxZoom?: number;
 }
 
 const ImageMagnifier: React.FC<ImageMagnifierProps> = ({
@@ -15,48 +14,120 @@ const ImageMagnifier: React.FC<ImageMagnifierProps> = ({
   hdSrc,
   alt,
   className,
-  magnifierSize = 400,
-  zoomLevel = 18,
+  maxZoom = 4,
 }) => {
-  const [showMagnifier, setShowMagnifier] = useState(false);
-  const [magnifierPosition, setMagnifierPosition] = useState({ x: 0, y: 0 });
-  const [cursorPosition, setCursorPosition] = useState({ x: 0, y: 0 });
-  const imageRef = useRef<HTMLImageElement>(null);
+  const [isZoomed, setIsZoomed] = useState(false);
+  const [transform, setTransform] = useState({ x: 0, y: 0, scale: 1 });
+  const [naturalSize, setNaturalSize] = useState({ width: 0, height: 0 });
+  const [displaySize, setDisplaySize] = useState({ width: 0, height: 0 });
   const containerRef = useRef<HTMLDivElement>(null);
+  const imageRef = useRef<HTMLImageElement>(null);
 
-  // Use HD source for zoom if provided, otherwise use regular source
+  // Use HD source when zoomed if available
   const zoomImageSrc = hdSrc || src;
 
+  // Calculate optimal zoom based on image resolution
+  const calculateOptimalZoom = useCallback(() => {
+    if (naturalSize.width === 0 || displaySize.width === 0) return maxZoom;
+    
+    // Zoom relative to how much detail is available
+    const resolutionRatio = naturalSize.width / displaySize.width;
+    // Clamp between 2x and maxZoom, scaling with resolution
+    return Math.min(Math.max(resolutionRatio, 2), maxZoom);
+  }, [naturalSize.width, displaySize.width, maxZoom]);
+
+  // Update sizes when image loads
+  const handleImageLoad = useCallback(() => {
+    if (imageRef.current) {
+      setNaturalSize({
+        width: imageRef.current.naturalWidth,
+        height: imageRef.current.naturalHeight,
+      });
+      const rect = imageRef.current.getBoundingClientRect();
+      setDisplaySize({ width: rect.width, height: rect.height });
+    }
+  }, []);
+
+  // Update display size on resize
+  useEffect(() => {
+    const updateDisplaySize = () => {
+      if (imageRef.current) {
+        const rect = imageRef.current.getBoundingClientRect();
+        setDisplaySize({ width: rect.width, height: rect.height });
+      }
+    };
+
+    window.addEventListener('resize', updateDisplaySize);
+    return () => window.removeEventListener('resize', updateDisplaySize);
+  }, []);
+
   const handleMouseMove = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
-    if (!imageRef.current) return;
+    if (!containerRef.current || !isZoomed) return;
 
-    const elem = imageRef.current;
-    const { top, left, width, height } = elem.getBoundingClientRect();
+    const rect = containerRef.current.getBoundingClientRect();
+    const optimalZoom = calculateOptimalZoom();
 
-    // Calculate cursor position relative to image
-    const x = e.clientX - left;
-    const y = e.clientY - top;
+    // Cursor position as percentage (0 to 1)
+    const xPercent = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+    const yPercent = Math.max(0, Math.min(1, (e.clientY - rect.top) / rect.height));
 
-    // Calculate percentage position for background
-    const xPercent = (x / width) * 100;
-    const yPercent = (y / height) * 100;
+    // Calculate max translation to keep image within bounds
+    // When zoomed, the image is larger than container by (scale - 1) * size
+    const maxTranslateX = ((optimalZoom - 1) * rect.width) / 2;
+    const maxTranslateY = ((optimalZoom - 1) * rect.height) / 2;
 
-    setCursorPosition({ x, y });
-    setMagnifierPosition({ x: xPercent, y: yPercent });
-  }, []);
+    // Map cursor position to translation
+    // At 0% cursor, translate to +max (show left/top edge)
+    // At 100% cursor, translate to -max (show right/bottom edge)
+    const translateX = maxTranslateX - (xPercent * 2 * maxTranslateX);
+    const translateY = maxTranslateY - (yPercent * 2 * maxTranslateY);
 
-  const handleMouseEnter = useCallback(() => {
-    setShowMagnifier(true);
-  }, []);
+    setTransform({
+      x: translateX,
+      y: translateY,
+      scale: optimalZoom,
+    });
+  }, [isZoomed, calculateOptimalZoom]);
+
+  const handleMouseEnter = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+    setIsZoomed(true);
+    // Trigger initial position calculation
+    if (containerRef.current) {
+      const rect = containerRef.current.getBoundingClientRect();
+      const optimalZoom = calculateOptimalZoom();
+      
+      const xPercent = (e.clientX - rect.left) / rect.width;
+      const yPercent = (e.clientY - rect.top) / rect.height;
+      
+      const maxTranslateX = ((optimalZoom - 1) * rect.width) / 2;
+      const maxTranslateY = ((optimalZoom - 1) * rect.height) / 2;
+      
+      const translateX = maxTranslateX - (xPercent * 2 * maxTranslateX);
+      const translateY = maxTranslateY - (yPercent * 2 * maxTranslateY);
+
+      setTransform({
+        x: translateX,
+        y: translateY,
+        scale: optimalZoom,
+      });
+    }
+  }, [calculateOptimalZoom]);
 
   const handleMouseLeave = useCallback(() => {
-    setShowMagnifier(false);
+    setIsZoomed(false);
+    setTransform({ x: 0, y: 0, scale: 1 });
   }, []);
+
+  const optimalZoom = calculateOptimalZoom();
 
   return (
     <div
       ref={containerRef}
-      className={cn("relative overflow-hidden cursor-none", className)}
+      className={cn(
+        "relative overflow-hidden cursor-zoom-in",
+        isZoomed && "cursor-move",
+        className
+      )}
       onMouseMove={handleMouseMove}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
@@ -64,96 +135,53 @@ const ImageMagnifier: React.FC<ImageMagnifierProps> = ({
         willChange: 'transform',
       }}
     >
-      {/* Base image */}
+      {/* Main image with GPU-accelerated transform */}
       <img
         ref={imageRef}
-        src={src}
+        src={isZoomed ? zoomImageSrc : src}
         alt={alt}
+        onLoad={handleImageLoad}
         className="w-full h-full object-cover"
-        loading="lazy"
         style={{
+          transform: `translate3d(${transform.x}px, ${transform.y}px, 0) scale(${transform.scale})`,
+          transformOrigin: 'center center',
+          transition: isZoomed 
+            ? 'transform 0.08s cubic-bezier(0.25, 0.46, 0.45, 0.94)' 
+            : 'transform 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
           willChange: 'transform',
-          imageRendering: 'crisp-edges' as const,
-        }}
-      />
-
-      {/* Ultra-premium magnifier lens */}
-      <div
-        className={cn(
-          "pointer-events-none absolute rounded-full border-2 border-primary/80 z-50",
-          "transition-[opacity,transform] duration-150 ease-out"
-        )}
-        style={{
-          width: magnifierSize,
-          height: magnifierSize,
-          left: cursorPosition.x - magnifierSize / 2,
-          top: cursorPosition.y - magnifierSize / 2,
-          backgroundImage: `url(${zoomImageSrc})`,
-          backgroundSize: `${zoomLevel * 100}%`,
-          backgroundPosition: `${magnifierPosition.x}% ${magnifierPosition.y}%`,
-          backgroundRepeat: 'no-repeat',
-          imageRendering: 'auto' as const,
-          boxShadow: `
-            0 0 0 3px rgba(212, 175, 55, 0.3),
-            0 0 60px rgba(212, 175, 55, 0.4),
-            0 25px 80px rgba(0,0,0,0.5),
-            inset 0 0 40px rgba(255,255,255,0.15)
-          `,
-          opacity: showMagnifier ? 1 : 0,
-          transform: showMagnifier ? 'scale(1)' : 'scale(0.8)',
-          willChange: 'transform, opacity, left, top, background-position',
           backfaceVisibility: 'hidden',
           WebkitBackfaceVisibility: 'hidden',
-          perspective: 1000,
         }}
       />
 
-      {/* Custom cursor indicator at center of magnifier */}
-      <div
-        className={cn(
-          "pointer-events-none absolute z-50 rounded-full",
-          "transition-opacity duration-150 ease-out"
-        )}
-        style={{
-          width: 8,
-          height: 8,
-          left: cursorPosition.x - 4,
-          top: cursorPosition.y - 4,
-          backgroundColor: 'rgba(212, 175, 55, 0.9)',
-          boxShadow: '0 0 10px rgba(212, 175, 55, 0.8)',
-          opacity: showMagnifier ? 1 : 0,
-          willChange: 'opacity, left, top',
-        }}
-      />
-
-      {/* Elegant vignette overlay when magnifier is active */}
-      <div
-        className="pointer-events-none absolute inset-0 z-40 transition-opacity duration-300"
-        style={{
-          background: showMagnifier 
-            ? `radial-gradient(circle ${magnifierSize / 2 + 60}px at ${cursorPosition.x}px ${cursorPosition.y}px, transparent 0%, rgba(0,0,0,0.25) 100%)`
-            : 'transparent',
-          opacity: showMagnifier ? 1 : 0,
-          willChange: 'opacity, background',
-        }}
-      />
-
-      {/* Zoom level indicator */}
+      {/* Zoom indicator badge */}
       <div
         className={cn(
           "absolute bottom-4 right-4 z-50 px-3 py-1.5 rounded-full",
           "bg-black/70 text-primary text-xs font-medium tracking-wide",
-          "transition-all duration-200 ease-out backdrop-blur-sm",
+          "transition-all duration-300 ease-out backdrop-blur-sm",
           "border border-primary/30"
         )}
         style={{
-          opacity: showMagnifier ? 1 : 0,
-          transform: showMagnifier ? 'translateY(0)' : 'translateY(10px)',
+          opacity: isZoomed ? 1 : 0,
+          transform: isZoomed ? 'translateY(0)' : 'translateY(10px)',
           willChange: 'opacity, transform',
         }}
       >
-        {zoomLevel}× ZOOM
+        {optimalZoom.toFixed(1)}× ZOOM
       </div>
+
+      {/* Subtle hover hint when not zoomed */}
+      <div
+        className={cn(
+          "absolute inset-0 z-10 flex items-center justify-center",
+          "bg-black/0 transition-all duration-300",
+          "pointer-events-none"
+        )}
+        style={{
+          opacity: isZoomed ? 0 : 0,
+        }}
+      />
     </div>
   );
 };
