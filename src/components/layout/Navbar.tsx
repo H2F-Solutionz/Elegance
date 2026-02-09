@@ -64,39 +64,28 @@ const Navbar: React.FC = () => {
 
           {/* Actions */}
           <div className="flex items-center gap-2 md:gap-4">
-            {/* Search */}
-            <div className="relative">
-              {isSearchOpen ? (
-                <form onSubmit={handleSearch} className="absolute right-0 top-1/2 -translate-y-1/2">
-                  <div className="flex items-center gap-2 animate-slide-in-right">
-                    <Input
-                      type="text"
-                      placeholder="Search jewelry..."
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      className="w-48 md:w-64 h-9"
-                      autoFocus
-                    />
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => setIsSearchOpen(false)}
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </form>
-              ) : (
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => setIsSearchOpen(true)}
-                  className="hover:text-primary"
-                >
-                  <Search className="h-5 w-5" />
-                </Button>
-              )}
+            {/* Search - Desktop/Tablet inline */}
+            <div className="hidden sm:block">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setIsSearchOpen(!isSearchOpen)}
+                className="hover:text-primary"
+              >
+                {isSearchOpen ? <X className="h-5 w-5" /> : <Search className="h-5 w-5" />}
+              </Button>
+            </div>
+
+            {/* Search - Mobile toggle */}
+            <div className="sm:hidden">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setIsSearchOpen(!isSearchOpen)}
+                className="hover:text-primary"
+              >
+                {isSearchOpen ? <X className="h-5 w-5" /> : <Search className="h-5 w-5" />}
+              </Button>
             </div>
 
             {/* Cart */}
@@ -131,6 +120,44 @@ const Navbar: React.FC = () => {
             </Button>
           </div>
         </div>
+
+        {/* Mobile Search Bar - Full Width */}
+        {isSearchOpen && (
+          <div className="sm:hidden py-3 border-t border-border animate-fade-in">
+            <form onSubmit={handleSearch} className="flex items-center gap-2">
+              <Input
+                type="text"
+                placeholder="Search jewelry..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="flex-1 h-10"
+                autoFocus
+              />
+              <Button type="submit" size="sm" className="shrink-0">
+                Search
+              </Button>
+            </form>
+          </div>
+        )}
+
+        {/* Desktop/Tablet Search Bar */}
+        {isSearchOpen && (
+          <div className="hidden sm:block py-3 border-t border-border animate-fade-in">
+            <form onSubmit={handleSearch} className="flex items-center justify-center gap-2 max-w-md mx-auto">
+              <Input
+                type="text"
+                placeholder="Search jewelry..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="flex-1 h-10 md:h-9"
+                autoFocus
+              />
+              <Button type="submit" size="sm" className="shrink-0">
+                Search
+              </Button>
+            </form>
+          </div>
+        )}
 
         {/* Mobile Navigation */}
         {isMenuOpen && (
