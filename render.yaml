@@ -1,0 +1,14 @@
+services:
+  - type: web
+    name: sparkle-bangles-backend
+    env: node
+    rootDir: backend
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    envVars:
+      - key: MONGODB_URI
+        value: mongodb+srv://bijon:bijon2002@shop.nby9ibn.mongodb.net/sparkle-bangles?appName=shop
+      - key: JWT_SECRET
+        generateValue: true
+      - key: FRONTEND_URL
+        sync: false # Set this in Render dashboard once you have your Cloudflare Pages URL
