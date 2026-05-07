@@ -532,10 +532,10 @@ const Settings = () => {
                                     <h3 className="text-sm font-medium leading-none text-gray-900 dark:text-white mb-2">Theme Preference</h3>
                                     <p className="text-sm text-gray-500 dark:text-gray-400">Select the background theme for the application.</p>
                                 </div>
-                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                                <div className="grid grid-cols-1 sm:grid-cols-1 gap-4">
                                     <button
                                         onClick={() => setTheme("light")}
-                                        className={`flex flex-col items-center justify-between rounded-md border-2 p-4 pt-6 bg-white hover:bg-gray-50 hover:text-gray-900 ${theme === 'light' ? 'border-primary' : 'border-gray-200 dark:border-zinc-800'} transition-all`}
+                                        className={`mx-auto max-w-xs w-full flex flex-col items-center justify-between rounded-md border-2 p-4 pt-6 bg-white hover:bg-gray-50 hover:text-gray-900 ${theme === 'light' ? 'border-primary' : 'border-gray-200'} transition-all`}
                                     >
                                         <div className="space-y-2 w-full">
                                             <div className="p-2 w-full rounded-sm bg-gray-100 flex items-center justify-center">
@@ -543,33 +543,6 @@ const Settings = () => {
                                             </div>
                                         </div>
                                         <span className="block w-full text-center mt-4 font-semibold text-sm">Light</span>
-                                    </button>
-
-                                    <button
-                                        onClick={() => setTheme("dark")}
-                                        className={`flex flex-col items-center justify-between rounded-md border-2 p-4 pt-6 bg-zinc-950 hover:bg-zinc-900 hover:text-white ${theme === 'dark' ? 'border-primary' : 'border-gray-200 dark:border-zinc-800'} transition-all`}
-                                    >
-                                        <div className="space-y-2 w-full">
-                                            <div className="p-2 w-full rounded-sm bg-zinc-800 flex items-center justify-center">
-                                                <div className="w-4/5 h-16 rounded-sm bg-zinc-900 border border-zinc-700 shadow-sm"></div>
-                                            </div>
-                                        </div>
-                                        <span className="block w-full p-2 text-center mt-2 font-semibold text-sm text-white">Dark</span>
-                                    </button>
-
-                                    <button
-                                        onClick={() => setTheme("system")}
-                                        className={`flex flex-col items-center justify-between rounded-md border-2 p-4 pt-6 bg-gradient-to-br from-white to-zinc-950 hover:opacity-90 ${theme === 'system' ? 'border-primary' : 'border-gray-200 dark:border-zinc-800'} transition-all`}
-                                    >
-                                        <div className="space-y-2 w-full flex gap-2">
-                                            <div className="p-2 w-1/2 rounded-sm bg-gray-100 flex items-center justify-center">
-                                                <div className="w-full h-16 rounded-sm bg-white border border-gray-200 shadow-sm"></div>
-                                            </div>
-                                            <div className="p-2 w-1/2 rounded-sm bg-zinc-800 flex items-center justify-center">
-                                                <div className="w-full h-16 rounded-sm bg-zinc-900 border border-zinc-700 shadow-sm"></div>
-                                            </div>
-                                        </div>
-                                        <span className="block w-full p-2 text-center mt-2 font-semibold text-sm bg-white/80 dark:bg-zinc-950/80 rounded">System</span>
                                     </button>
                                 </div>
                             </div>
