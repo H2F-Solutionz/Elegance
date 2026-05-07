@@ -47,6 +47,17 @@ app.get('/api/health', (_req, res) => {
     res.json({ status: 'ok', message: 'Sparkle Bangles API v2 (AI Enabled) is running 🚀' });
 });
 
+// Root endpoint for platform health checks and quick browser visits
+app.get('/', (_req, res) => {
+    res.json({
+        status: 'ok',
+        message: 'Sparkle Bangles Backend is running',
+        health: '/api/health',
+        products: '/api/products',
+        slides: '/api/slides',
+    });
+});
+
 // API Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/products', productRoutes);
