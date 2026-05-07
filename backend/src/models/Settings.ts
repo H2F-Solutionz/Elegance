@@ -3,7 +3,6 @@ import mongoose, { Schema, Document } from 'mongoose';
 export interface ISettings extends Document {
     payment_methods: {
         stripe: boolean;
-        paypal: boolean;
         cod: boolean; // Cash on Delivery
     };
     updated_at: Date;
@@ -14,10 +13,6 @@ const SettingsSchema: Schema = new Schema({
         stripe: {
             type: Boolean,
             default: true,
-        },
-        paypal: {
-            type: Boolean,
-            default: false,
         },
         cod: {
             type: Boolean,

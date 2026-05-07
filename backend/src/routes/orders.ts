@@ -1,5 +1,7 @@
 import { Router, Request, Response } from 'express';
 import Order from '../models/Order';
+import User from '../models/User';
+import Product from '../models/Product';
 import { requireAuth, requireAdmin } from '../middleware/auth';
 
 const router = Router();

@@ -3,10 +3,11 @@ import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
 import { cn } from '@/lib/utils';
+import { slidesAPI } from '@/lib/api';
 
-const slides = [
+const DEFAULT_SLIDES = [
   {
-    id: 1,
+    _id: '1',
     title: 'Timeless Elegance',
     subtitle: 'Discover Our Wedding Collection',
     description: 'Exquisite bangles crafted with love for your special moments',
@@ -15,7 +16,7 @@ const slides = [
     link: '/categories/women?filter=wedding',
   },
   {
-    id: 2,
+    _id: '2',
     title: 'New Arrivals',
     subtitle: 'Contemporary Designs',
     description: 'Modern minimalist pieces for the everyday woman',
@@ -24,7 +25,7 @@ const slides = [
     link: '/latest-arrivals',
   },
   {
-    id: 3,
+    _id: '3',
     title: 'Festive Sale',
     subtitle: 'Up to 30% Off',
     description: 'Celebrate with stunning gold and diamond bangles',
@@ -35,12 +36,24 @@ const slides = [
 ];
 
 const HeroCarousel: React.FC = () => {
+  const [slides, setSlides] = useState<any[]>(DEFAULT_SLIDES);
   const [currentSlide, setCurrentSlide] = useState(0);
   const [isAutoPlaying, setIsAutoPlaying] = useState(true);
 
+  // Fetch slides from backend
+  useEffect(() => {
+    slidesAPI.getPublic()
+      .then((data) => {
+        if (data && data.length > 0) setSlides(data);
+      })
+      .catch(() => {
+        // Silently fall back to default slides
+      });
+  }, []);
+
   const nextSlide = useCallback(() => {
     setCurrentSlide((prev) => (prev + 1) % slides.length);
-  }, []);
+  }, [slides.length]);
 
   const prevSlide = () => {
     setCurrentSlide((prev) => (prev - 1 + slides.length) % slides.length);
@@ -62,7 +75,7 @@ const HeroCarousel: React.FC = () => {
       {/* Slides */}
       {slides.map((slide, index) => (
         <div
-          key={slide.id}
+          key={slide._id || slide.id || index}
           className={cn(
             "absolute inset-0 transition-opacity duration-1000",
             index === currentSlide ? "opacity-100" : "opacity-0 pointer-events-none"
@@ -86,18 +99,22 @@ const HeroCarousel: React.FC = () => {
                 index === currentSlide ? "translate-x-0 opacity-100" : "-translate-x-10 opacity-0"
               )}
             >
-              <span className="font-display text-lg md:text-xl text-primary mb-2 block">
-                {slide.subtitle}
-              </span>
+              {slide.subtitle && (
+                <span className="font-display text-lg md:text-xl text-primary mb-2 block">
+                  {slide.subtitle}
+                </span>
+              )}
               <h1 className="font-serif text-4xl md:text-6xl lg:text-7xl font-bold text-cream mb-4">
                 {slide.title}
               </h1>
-              <p className="font-sans text-cream/80 text-base md:text-lg mb-8 max-w-md">
-                {slide.description}
-              </p>
-              <Link to={slide.link}>
+              {slide.description && (
+                <p className="font-sans text-cream/80 text-base md:text-lg mb-8 max-w-md">
+                  {slide.description}
+                </p>
+              )}
+              <Link to={slide.link || '/'}>
                 <Button variant="gold" size="xl" className="font-medium">
-                  {slide.cta}
+                  {slide.cta || 'Shop Now'}
                 </Button>
               </Link>
             </div>

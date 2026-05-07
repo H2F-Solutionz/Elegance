@@ -71,7 +71,12 @@ export const authAPI = {
 
 // ─── Payments API ────────────────────────────────────────────────────────
 export const paymentsAPI = {
-    createCheckoutSession: (data: { items: any[]; successUrl: string; cancelUrl: string }) =>
+    createCheckoutSession: (data: { 
+        items: any[]; 
+        address?: { street: string; city: string; state: string; zip_code: string; country: string; phone: string }; 
+        successUrl: string; 
+        cancelUrl: string; 
+    }) =>
         request<{ url: string }>('/payments/create-checkout-session', {
             method: 'POST',
             body: JSON.stringify(data),
@@ -169,11 +174,46 @@ export const userAPI = {
 // ─── Admin API ────────────────────────────────────────────────────────────
 export const adminAPI = {
     getPaymentMethods: () => 
-        request<{ stripe: boolean; paypal: boolean; cod: boolean }>(`/admin/settings/payment-methods?t=${Date.now()}`),
+        request<{ stripe: boolean; cod: boolean }>(`/admin/settings/payment-methods?t=${Date.now()}`),
     
-    updatePaymentMethods: (methods: { stripe?: boolean; paypal?: boolean; cod?: boolean }) =>
-        request<{ message: string; payment_methods: { stripe: boolean; paypal: boolean; cod: boolean } }>(
+    updatePaymentMethods: (methods: { stripe?: boolean; cod?: boolean }) =>
+        request<{ message: string; payment_methods: { stripe: boolean; cod: boolean } }>(
             '/admin/settings/payment-methods',
             { method: 'PUT', body: JSON.stringify(methods) }
         ),
 };
+
+// ─── Slides API ───────────────────────────────────────────────────────────
+export const slidesAPI = {
+    // Public — active slides only
+    getPublic: () => request<any[]>('/slides'),
+
+    // Admin — all slides (active + inactive)
+    getAll: () => request<any[]>('/slides/admin/all'),
+
+    create: (data: {
+        title: string;
+        subtitle?: string;
+        description?: string;
+        image: string;       // URL or base64 data URI
+        cta?: string;
+        link?: string;
+        order?: number;
+        active?: boolean;
+    }) => request<any>('/slides', { method: 'POST', body: JSON.stringify(data) }),
+
+    update: (id: string, data: Partial<{
+        title: string;
+        subtitle: string;
+        description: string;
+        image: string;
+        cta: string;
+        link: string;
+        order: number;
+        active: boolean;
+    }>) => request<any>(`/slides/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+
+    delete: (id: string) => request<{ message: string }>(`/slides/${id}`, { method: 'DELETE' }),
+};
+
+

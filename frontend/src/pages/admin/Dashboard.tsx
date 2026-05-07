@@ -6,8 +6,10 @@ import {
     CreditCard,
     ArrowUpRight,
     ArrowDownRight,
-    Loader2
+    Loader2,
+    Download
 } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import {
     BarChart,
     Bar,
@@ -22,6 +24,34 @@ import {
 import { useState, useEffect } from "react";
 import { ordersAPI } from "@/lib/api";
 import { toast } from "@/hooks/use-toast";
+
+type DashboardOrder = {
+    _id: string;
+    created_at: string;
+    user_id?: {
+        display_name?: string;
+        email?: string;
+    };
+    user?: {
+        display_name?: string;
+    };
+    product_id?: {
+        name?: string;
+    };
+    product?: {
+        name?: string;
+    };
+    status: string;
+    total_amount?: number;
+    email?: string;
+};
+
+type DashboardStats = {
+    totalRevenue: number;
+    totalOrders: number;
+    totalCustomers: number;
+    recentOrders: DashboardOrder[];
+};
 
 const salesData = [
     { name: "Jan", total: 4000 },
@@ -44,8 +74,50 @@ const revenueData = [
 ];
 
 const Dashboard = () => {
-    const [stats, setStats] = useState<any>(null);
+    const [stats, setStats] = useState<DashboardStats | null>(null);
     const [isLoading, setIsLoading] = useState(true);
+
+    const exportToCSV = async () => {
+        try {
+            toast({ title: "Preparing export...", description: "Fetching all order data." });
+            const data = await ordersAPI.getAll({ limit: 1000 });
+            const allOrders: DashboardOrder[] = data.orders || [];
+
+            if (!allOrders.length) {
+                toast({ title: "No data", description: "There are no orders to export.", variant: "destructive" });
+                return;
+            }
+
+            const headers = ["Order ID", "Date", "Customer", "Email", "Product", "Status", "Amount"];
+            const csvRows = allOrders.map((order) => [
+                `#${order._id}`,
+                new Date(order.created_at).toLocaleDateString(),
+                order.user_id?.display_name || "Guest",
+                order.user_id?.email || "N/A",
+                order.product_id?.name || "N/A",
+                order.status,
+                `LKR ${order.total_amount}`
+            ]);
+
+            const csvContent = [headers, ...csvRows].map(e => e.join(",")).join("\n");
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement("a");
+            const url = URL.createObjectURL(blob);
+            link.setAttribute("href", url);
+            link.setAttribute("download", `all_orders_report_${new Date().toISOString().split('T')[0]}.csv`);
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            toast({ title: "CSV Exported", description: `Full report with ${allOrders.length} orders is ready.` });
+        } catch (err: unknown) {
+            toast({
+                title: "Export failed",
+                description: err instanceof Error ? err.message : "Unable to export orders.",
+                variant: "destructive",
+            });
+        }
+    };
 
     useEffect(() => {
         const fetchStats = async () => {
@@ -53,8 +125,12 @@ const Dashboard = () => {
                 setIsLoading(true);
                 const data = await ordersAPI.getStats();
                 setStats(data);
-            } catch (err: any) {
-                toast({ title: "Error fetching dashboard stats", description: err.message, variant: "destructive" });
+            } catch (err: unknown) {
+                toast({
+                    title: "Error fetching dashboard stats",
+                    description: err instanceof Error ? err.message : "Unable to load dashboard data.",
+                    variant: "destructive",
+                });
             } finally {
                 setIsLoading(false);
             }
@@ -71,11 +147,15 @@ const Dashboard = () => {
     }
     return (
         <div className="flex flex-col gap-6">
-            <div>
-                <h1 className="text-3xl font-bold tracking-tight text-gray-900 dark:text-white">Dashboard</h1>
-                <p className="text-gray-500 dark:text-gray-400 mt-2">Overview of your store's performance.</p>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                    <h1 className="text-3xl font-bold tracking-tight text-gray-900 dark:text-white">Dashboard</h1>
+                    <p className="text-gray-500 dark:text-gray-400 mt-2">Overview of your store's performance.</p>
+                </div>
+                <Button variant="outline" onClick={exportToCSV} className="bg-white dark:bg-zinc-950">
+                    <Download className="mr-2 h-4 w-4" /> Export All Orders
+                </Button>
             </div>
-
             <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between pb-2">
@@ -233,12 +313,17 @@ const Dashboard = () => {
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-100 dark:divide-zinc-800">
-                                {stats?.recentOrders?.map((order: any) => (
+                                {stats?.recentOrders?.map((order) => (
                                     <tr key={order._id} className="hover:bg-gray-50/50 dark:hover:bg-zinc-800/50 transition-colors">
                                         <td className="px-4 py-3 font-medium text-gray-900 dark:text-white">#{order._id.slice(-6)}</td>
-                                        <td className="px-4 py-3">{order.user?.display_name || 'Guest'}</td>
-                                        <td className="px-4 py-3 text-gray-500 dark:text-gray-400">{order.product_id?.name}</td>
                                         <td className="px-4 py-3">
+                                            <div className="font-medium">{order.user_id?.display_name || order.user?.display_name || 'Guest'}</div>
+                                            <div className="text-[10px] text-gray-500">{order.user_id?.email || order.email || ''}</div>
+                                        </td>
+                                        <td className="px-4 py-3 text-gray-500 dark:text-gray-400">
+                                            {order.product_id?.name || order.product?.name || 'Product'}
+                                        </td>
+                                       <td className="px-4 py-3">
                                             <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium capitalize
                         ${order.status === 'delivered' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' : ''}
                         ${order.status === 'processing' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400' : ''}
@@ -248,8 +333,8 @@ const Dashboard = () => {
                                                 {order.status}
                                             </span>
                                         </td>
-                                        <td className="px-4 py-3 text-right font-medium">₹{order.total_amount?.toLocaleString()}</td>
-                                    </tr>
+                                        <td className="px-4 py-3 text-right font-medium">LKR {order.total_amount?.toLocaleString()}</td>
+                                   </tr>
                                 ))}
                             </tbody>
                         </table>

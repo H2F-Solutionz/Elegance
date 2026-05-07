@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { Save, Store, CreditCard, BellRing, Settings as SettingsIcon, Palette, Check } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { Save, Store, CreditCard, BellRing, Settings as SettingsIcon, Palette, Check, LayoutDashboard, Plus, Pencil, Trash2, Eye, EyeOff, Image as ImageIcon, X, GripVertical } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -10,12 +10,141 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { useTheme, ColorTheme, Theme, Radius } from "@/contexts/ThemeContext";
-import { adminAPI } from "@/lib/api";
+import { adminAPI, slidesAPI } from "@/lib/api";
+
+// ─── Slide form shape ────────────────────────────────────────────────────
+const EMPTY_SLIDE = {
+    title: '',
+    subtitle: '',
+    description: '',
+    image: '',
+    cta: 'Shop Now',
+    link: '/',
+    active: true,
+};
 
 const Settings = () => {
     const { toast } = useToast();
     const { theme, setTheme, color, setColor, radius, setRadius } = useTheme();
     const [isSaving, setIsSaving] = useState(false);
+
+    // ── Slides state ──────────────────────────────────────────────────────
+    const [slides, setSlides] = useState<any[]>([]);
+    const [slidesLoading, setSlidesLoading] = useState(true);
+    const [showSlideForm, setShowSlideForm] = useState(false);
+    const [editingSlide, setEditingSlide] = useState<any | null>(null);
+    const [slideForm, setSlideForm] = useState({ ...EMPTY_SLIDE });
+    const [slideImagePreview, setSlideImagePreview] = useState('');
+    const [isSlideSaving, setIsSlideSaving] = useState(false);
+    const fileInputRef = useRef<HTMLInputElement>(null);
+
+    // Load slides
+    const loadSlides = async () => {
+        setSlidesLoading(true);
+        try {
+            const data = await slidesAPI.getAll();
+            setSlides(data);
+        } catch (err) {
+            console.error('Failed to load slides:', err);
+        } finally {
+            setSlidesLoading(false);
+        }
+    };
+
+    useEffect(() => { loadSlides(); }, []);
+
+    // Open Add form
+    const openAddSlide = () => {
+        setEditingSlide(null);
+        setSlideForm({ ...EMPTY_SLIDE });
+        setSlideImagePreview('');
+        setShowSlideForm(true);
+    };
+
+    // Open Edit form
+    const openEditSlide = (slide: any) => {
+        setEditingSlide(slide);
+        setSlideForm({
+            title: slide.title || '',
+            subtitle: slide.subtitle || '',
+            description: slide.description || '',
+            image: slide.image || '',
+            cta: slide.cta || 'Shop Now',
+            link: slide.link || '/',
+            active: slide.active !== false,
+        });
+        setSlideImagePreview(slide.image || '');
+        setShowSlideForm(true);
+    };
+
+    // Handle image file pick → base64
+    const handleSlideImageFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+            const result = ev.target?.result as string;
+            setSlideForm(prev => ({ ...prev, image: result }));
+            setSlideImagePreview(result);
+        };
+        reader.readAsDataURL(file);
+    };
+
+    // Handle URL paste
+    const handleSlideImageUrl = (url: string) => {
+        setSlideForm(prev => ({ ...prev, image: url }));
+        setSlideImagePreview(url);
+    };
+
+    // Save slide (create or update)
+    const handleSaveSlide = async () => {
+        if (!slideForm.title.trim()) {
+            toast({ title: 'Validation Error', description: 'Slide title is required.', variant: 'destructive' });
+            return;
+        }
+        if (!slideForm.image.trim()) {
+            toast({ title: 'Validation Error', description: 'Slide image is required.', variant: 'destructive' });
+            return;
+        }
+        setIsSlideSaving(true);
+        try {
+            if (editingSlide) {
+                await slidesAPI.update(editingSlide._id, slideForm);
+                toast({ title: 'Slide updated', description: 'The slide has been saved successfully.' });
+            } else {
+                await slidesAPI.create(slideForm);
+                toast({ title: 'Slide created', description: 'New slide added to the carousel.' });
+            }
+            setShowSlideForm(false);
+            loadSlides();
+        } catch (err: any) {
+            toast({ title: 'Error', description: err.message || 'Failed to save slide.', variant: 'destructive' });
+        } finally {
+            setIsSlideSaving(false);
+        }
+    };
+
+    // Toggle active
+    const handleToggleSlide = async (slide: any) => {
+        try {
+            await slidesAPI.update(slide._id, { active: !slide.active });
+            loadSlides();
+        } catch (err: any) {
+            toast({ title: 'Error', description: err.message, variant: 'destructive' });
+        }
+    };
+
+    // Delete slide
+    const handleDeleteSlide = async (id: string) => {
+        if (!window.confirm('Delete this slide? This cannot be undone.')) return;
+        try {
+            await slidesAPI.delete(id);
+            toast({ title: 'Slide deleted' });
+            loadSlides();
+        } catch (err: any) {
+            toast({ title: 'Error', description: err.message, variant: 'destructive' });
+        }
+    };
 
     // General Settings State
     const [generalSettings, setGeneralSettings] = useState({
@@ -30,7 +159,6 @@ const Settings = () => {
     // Payment Settings State
     const [paymentSettings, setPaymentSettings] = useState({
         stripe: true,
-        paypal: false,
         cod: true,
     });
 
@@ -166,35 +294,42 @@ const Settings = () => {
     };
 
     return (
-        <div className="flex flex-col gap-6 max-w-5xl">
+        <div className="flex flex-col gap-4 sm:gap-6 w-full max-w-5xl px-3 sm:px-0">
             <div>
-                <h1 className="text-3xl font-bold tracking-tight text-gray-900 dark:text-white">Settings</h1>
-                <p className="text-gray-500 dark:text-gray-400 mt-1">Manage your store configuration and preferences.</p>
+                <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-gray-900 dark:text-white">Settings</h1>
+                <p className="text-sm sm:text-base text-gray-500 dark:text-gray-400 mt-1">Manage your store configuration and preferences.</p>
             </div>
 
             <Tabs defaultValue="general" className="w-full">
-                <TabsList className="grid w-full mb-8 grid-cols-2 lg:grid-cols-5 max-w-4xl bg-white dark:bg-zinc-900 border border-gray-200 dark:border-gray-800 shadow-sm rounded-lg p-1 h-auto flex-wrap">
-                    <TabsTrigger value="general" className="data-[state=active]:bg-pink-50 data-[state=active]:text-pink-700 dark:data-[state=active]:bg-pink-900/30 dark:data-[state=active]:text-pink-300 py-2.5 rounded-md transition-all">
-                        <Store className="mr-2 h-4 w-4" />
+                <TabsList className="grid w-full mb-8 grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 max-w-5xl bg-white dark:bg-zinc-900 border border-gray-200 dark:border-gray-800 shadow-sm rounded-lg p-1 h-auto flex-wrap gap-1">
+                    <TabsTrigger value="general" className="data-[state=active]:bg-pink-50 data-[state=active]:text-pink-700 dark:data-[state=active]:bg-pink-900/30 dark:data-[state=active]:text-pink-300 py-2 px-2 sm:py-2.5 sm:px-3 rounded-md transition-all text-xs sm:text-sm">
+                        <Store className="mr-1 sm:mr-2 h-4 w-4" />
                         <span className="hidden sm:inline">General</span>
                         <span className="sm:hidden">Store</span>
                     </TabsTrigger>
-                    <TabsTrigger value="payments" className="data-[state=active]:bg-pink-50 data-[state=active]:text-pink-700 dark:data-[state=active]:bg-pink-900/30 dark:data-[state=active]:text-pink-300 py-2.5 rounded-md transition-all">
-                        <CreditCard className="mr-2 h-4 w-4" />
-                        Payments
+                    <TabsTrigger value="payments" className="data-[state=active]:bg-pink-50 data-[state=active]:text-pink-700 dark:data-[state=active]:bg-pink-900/30 dark:data-[state=active]:text-pink-300 py-2 px-2 sm:py-2.5 sm:px-3 rounded-md transition-all text-xs sm:text-sm">
+                        <CreditCard className="mr-1 sm:mr-2 h-4 w-4" />
+                        <span className="hidden sm:inline">Payments</span>
+                        <span className="sm:hidden">Pay</span>
                     </TabsTrigger>
-                    <TabsTrigger value="notifications" className="data-[state=active]:bg-pink-50 data-[state=active]:text-pink-700 dark:data-[state=active]:bg-pink-900/30 dark:data-[state=active]:text-pink-300 py-2.5 rounded-md transition-all">
-                        <BellRing className="mr-2 h-4 w-4" />
+                    <TabsTrigger value="notifications" className="data-[state=active]:bg-pink-50 data-[state=active]:text-pink-700 dark:data-[state=active]:bg-pink-900/30 dark:data-[state=active]:text-pink-300 py-2 px-2 sm:py-2.5 sm:px-3 rounded-md transition-all text-xs sm:text-sm">
+                        <BellRing className="mr-1 sm:mr-2 h-4 w-4" />
                         <span className="hidden sm:inline">Alerts</span>
-                        <span className="sm:hidden">Alerts</span>
+                        <span className="sm:hidden">Alert</span>
                     </TabsTrigger>
-                    <TabsTrigger value="appearance" className="data-[state=active]:bg-pink-50 data-[state=active]:text-pink-700 dark:data-[state=active]:bg-pink-900/30 dark:data-[state=active]:text-pink-300 py-2.5 rounded-md transition-all">
-                        <Palette className="mr-2 h-4 w-4" />
-                        Appearance
+                    <TabsTrigger value="ui-settings" className="data-[state=active]:bg-pink-50 data-[state=active]:text-pink-700 dark:data-[state=active]:bg-pink-900/30 dark:data-[state=active]:text-pink-300 py-2 px-2 sm:py-2.5 sm:px-3 rounded-md transition-all text-xs sm:text-sm hidden sm:flex">
+                        <LayoutDashboard className="mr-1 sm:mr-2 h-4 w-4" />
+                        <span className="hidden md:inline">UI Settings</span>
+                        <span className="md:hidden">UI</span>
                     </TabsTrigger>
-                    <TabsTrigger value="advanced" className="data-[state=active]:bg-pink-50 data-[state=active]:text-pink-700 dark:data-[state=active]:bg-pink-900/30 dark:data-[state=active]:text-pink-300 py-2.5 rounded-md transition-all">
-                        <SettingsIcon className="mr-2 h-4 w-4" />
-                        Advanced
+                    <TabsTrigger value="appearance" className="data-[state=active]:bg-pink-50 data-[state=active]:text-pink-700 dark:data-[state=active]:bg-pink-900/30 dark:data-[state=active]:text-pink-300 py-2 px-2 sm:py-2.5 sm:px-3 rounded-md transition-all text-xs sm:text-sm hidden sm:flex">
+                        <Palette className="mr-1 sm:mr-2 h-4 w-4" />
+                        <span className="hidden md:inline">Appearance</span>
+                        <span className="md:hidden">Look</span>
+                    </TabsTrigger>
+                    <TabsTrigger value="advanced" className="data-[state=active]:bg-pink-50 data-[state=active]:text-pink-700 dark:data-[state=active]:bg-pink-900/30 dark:data-[state=active]:text-pink-300 py-2 px-2 sm:py-2.5 sm:px-3 rounded-md transition-all text-xs sm:text-sm hidden lg:flex">
+                        <SettingsIcon className="mr-1 sm:mr-2 h-4 w-4" />
+                        <span>Advanced</span>
                     </TabsTrigger>
                 </TabsList>
 
@@ -307,19 +442,8 @@ const Settings = () => {
                             </div>
                             <div className="flex items-center justify-between space-x-2 rounded-lg border border-gray-200 dark:border-gray-800 p-4 bg-white dark:bg-zinc-950">
                                 <div className="flex flex-col space-y-1">
-                                    <span className="text-sm font-medium leading-none text-gray-900 dark:text-white">PayPal</span>
-                                    <span className="text-sm text-gray-500 dark:text-gray-400">Allow customers to pay with their PayPal account.</span>
-                                </div>
-                                <Switch 
-                                    checked={paymentSettings.paypal}
-                                    onCheckedChange={(checked) => handlePaymentChange('paypal', checked)}
-                                    id="paypal" 
-                                />
-                            </div>
-                            <div className="flex items-center justify-between space-x-2 rounded-lg border border-gray-200 dark:border-gray-800 p-4 bg-white dark:bg-zinc-950">
-                                <div className="flex flex-col space-y-1">
                                     <span className="text-sm font-medium leading-none text-gray-900 dark:text-white">Cash on Delivery (COD)</span>
-                                    <span className="text-sm text-gray-500 dark:text-gray-400">Only available for certain regions.</span>
+                                    <span className="text-sm text-gray-500 dark:text-gray-400">Allow customers to pay when items are delivered.</span>
                                 </div>
                                 <Switch 
                                     checked={paymentSettings.cod}
@@ -517,6 +641,149 @@ const Settings = () => {
                                 </div>
                             </div>
 
+                        </CardContent>
+                    </Card>
+                </TabsContent>
+
+                {/* ── UI Settings Tab ───────────────────────────────── */}
+                <TabsContent value="ui-settings" className="mt-0">
+                    <Card className="border-gray-200 dark:border-gray-800 shadow-sm">
+                        <CardHeader>
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <CardTitle>Hero Slideshow</CardTitle>
+                                    <CardDescription>Manage the banner slides shown on the homepage carousel.</CardDescription>
+                                </div>
+                                <Button onClick={openAddSlide} className="bg-pink-600 hover:bg-pink-700 text-white gap-2">
+                                    <Plus className="h-4 w-4" /> Add Slide
+                                </Button>
+                            </div>
+                        </CardHeader>
+                        <CardContent>
+                            {/* ── Inline Slide Form ──────────────────── */}
+                            {showSlideForm && (
+                                <div className="mb-6 rounded-xl border border-pink-200 dark:border-pink-900/40 bg-pink-50/50 dark:bg-pink-950/20 p-5 space-y-4">
+                                    <div className="flex items-center justify-between">
+                                        <h3 className="font-semibold text-gray-900 dark:text-white">{editingSlide ? 'Edit Slide' : 'New Slide'}</h3>
+                                        <button onClick={() => setShowSlideForm(false)} className="text-gray-400 hover:text-gray-600"><X className="h-4 w-4" /></button>
+                                    </div>
+
+                                    {/* Image */}
+                                    <div className="space-y-2">
+                                        <Label>Slide Image</Label>
+                                        <div className="flex gap-2">
+                                            <Input
+                                                placeholder="Paste image URL…"
+                                                value={slideForm.image.startsWith('data:') ? '' : slideForm.image}
+                                                onChange={e => handleSlideImageUrl(e.target.value)}
+                                                className="flex-1"
+                                            />
+                                            <Button type="button" variant="outline" onClick={() => fileInputRef.current?.click()} className="gap-1 shrink-0">
+                                                <ImageIcon className="h-4 w-4" /> Upload
+                                            </Button>
+                                            <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleSlideImageFile} />
+                                        </div>
+                                        {slideImagePreview && (
+                                            <div className="relative rounded-lg overflow-hidden h-36 bg-gray-100 dark:bg-zinc-800">
+                                                <img src={slideImagePreview} alt="preview" className="w-full h-full object-cover" />
+                                                <button onClick={() => { setSlideImagePreview(''); setSlideForm(p => ({ ...p, image: '' })); }} className="absolute top-2 right-2 bg-black/50 text-white rounded-full p-1 hover:bg-black/70">
+                                                    <X className="h-3 w-3" />
+                                                </button>
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div className="space-y-1">
+                                            <Label>Title *</Label>
+                                            <Input value={slideForm.title} onChange={e => setSlideForm(p => ({ ...p, title: e.target.value }))} placeholder="e.g. Timeless Elegance" />
+                                        </div>
+                                        <div className="space-y-1">
+                                            <Label>Subtitle</Label>
+                                            <Input value={slideForm.subtitle} onChange={e => setSlideForm(p => ({ ...p, subtitle: e.target.value }))} placeholder="e.g. Wedding Collection" />
+                                        </div>
+                                        <div className="space-y-1 md:col-span-2">
+                                            <Label>Description</Label>
+                                            <Textarea value={slideForm.description} onChange={e => setSlideForm(p => ({ ...p, description: e.target.value }))} rows={2} placeholder="Short description shown on the slide" />
+                                        </div>
+                                        <div className="space-y-1">
+                                            <Label>Button Text (CTA)</Label>
+                                            <Input value={slideForm.cta} onChange={e => setSlideForm(p => ({ ...p, cta: e.target.value }))} placeholder="Shop Now" />
+                                        </div>
+                                        <div className="space-y-1">
+                                            <Label>Button Link</Label>
+                                            <Input value={slideForm.link} onChange={e => setSlideForm(p => ({ ...p, link: e.target.value }))} placeholder="/hot-sales" />
+                                        </div>
+                                    </div>
+
+                                    <div className="flex items-center gap-3">
+                                        <Switch checked={slideForm.active} onCheckedChange={v => setSlideForm(p => ({ ...p, active: v }))} id="slide-active" />
+                                        <Label htmlFor="slide-active">Visible on homepage</Label>
+                                    </div>
+
+                                    <div className="flex gap-3 pt-1">
+                                        <Button onClick={handleSaveSlide} disabled={isSlideSaving} className="bg-pink-600 hover:bg-pink-700 text-white gap-2">
+                                            <Save className="h-4 w-4" />{isSlideSaving ? 'Saving…' : 'Save Slide'}
+                                        </Button>
+                                        <Button variant="outline" onClick={() => setShowSlideForm(false)}>Cancel</Button>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* ── Slide List ─────────────────────────── */}
+                            {slidesLoading ? (
+                                <div className="py-12 text-center text-gray-400">Loading slides…</div>
+                            ) : slides.length === 0 ? (
+                                <div className="py-12 text-center">
+                                    <ImageIcon className="h-12 w-12 mx-auto text-gray-300 mb-3" />
+                                    <p className="text-gray-500">No slides yet. Click <strong>Add Slide</strong> to create your first one.</p>
+                                </div>
+                            ) : (
+                                <div className="space-y-3">
+                                    {slides.map((slide, i) => (
+                                        <div key={slide._id} className={`flex items-center gap-4 rounded-xl border p-3 transition-all ${
+                                            slide.active
+                                                ? 'border-gray-200 dark:border-gray-700 bg-white dark:bg-zinc-900'
+                                                : 'border-dashed border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-zinc-900/50 opacity-60'
+                                        }`}>
+                                            {/* Thumbnail */}
+                                            <div className="h-16 w-24 rounded-lg overflow-hidden shrink-0 bg-gray-100 dark:bg-zinc-800">
+                                                <img src={slide.image} alt={slide.title} className="h-full w-full object-cover" />
+                                            </div>
+
+                                            {/* Info */}
+                                            <div className="flex-1 min-w-0">
+                                                <p className="font-semibold text-gray-900 dark:text-white truncate">{slide.title}</p>
+                                                {slide.subtitle && <p className="text-sm text-gray-500 truncate">{slide.subtitle}</p>}
+                                                <p className="text-xs text-gray-400 mt-0.5">CTA: <span className="font-medium">{slide.cta}</span> → <span className="font-medium">{slide.link}</span></p>
+                                            </div>
+
+                                            {/* Badge */}
+                                            <span className={`hidden sm:inline-flex items-center text-xs px-2 py-1 rounded-full font-medium ${
+                                                slide.active ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : 'bg-gray-100 text-gray-500 dark:bg-zinc-800'
+                                            }`}>
+                                                {slide.active ? 'Live' : 'Hidden'}
+                                            </span>
+
+                                            {/* Actions */}
+                                            <div className="flex items-center gap-1 shrink-0">
+                                                <button onClick={() => handleToggleSlide(slide)} title={slide.active ? 'Hide slide' : 'Show slide'}
+                                                    className="p-2 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 dark:hover:bg-zinc-800 transition-colors">
+                                                    {slide.active ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                                                </button>
+                                                <button onClick={() => openEditSlide(slide)} title="Edit slide"
+                                                    className="p-2 rounded-lg text-gray-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors">
+                                                    <Pencil className="h-4 w-4" />
+                                                </button>
+                                                <button onClick={() => handleDeleteSlide(slide._id)} title="Delete slide"
+                                                    className="p-2 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors">
+                                                    <Trash2 className="h-4 w-4" />
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
                         </CardContent>
                     </Card>
                 </TabsContent>

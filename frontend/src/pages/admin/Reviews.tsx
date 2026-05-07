@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Search, Filter, Trash2, Eye, EyeOff, Loader2, Star } from "lucide-react";
+import { Search, Filter, Trash2, Eye, EyeOff, Loader2, Star, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -57,6 +57,30 @@ const Reviews = () => {
         } finally {
             setIsLoading(false);
         }
+    };
+
+    const exportToCSV = () => {
+        if (!reviews.length) return;
+        const headers = ["ID", "Product", "Customer", "Rating", "Review", "Date"];
+        const csvRows = reviews.map(review => [
+            review._id,
+            review.product_id?.name || "N/A",
+            review.user_id?.display_name || "Anonymous",
+            review.rating,
+            review.review_text.replace(/,/g, " "),
+            new Date(review.created_at).toLocaleDateString()
+        ]);
+        const csvContent = [headers, ...csvRows].map(e => e.join(",")).join("\n");
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement("a");
+        const url = URL.createObjectURL(blob);
+        link.setAttribute("href", url);
+        link.setAttribute("download", `reviews_report_${new Date().toISOString().split('T')[0]}.csv`);
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        toast({ title: "CSV Exported", description: "Review list has been exported." });
     };
 
     const handleDeleteReview = async (id: string) => {
@@ -119,13 +143,18 @@ const Reviews = () => {
                         Manage customer reviews and ratings.
                     </p>
                 </div>
-                <div className="text-right">
-                    <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                        {averageRating}
-                    </p>
-                    <p className="text-sm text-gray-500">
-                        Average Rating ({reviews.length} reviews)
-                    </p>
+                <div className="flex items-center gap-4">
+                    <Button variant="outline" onClick={exportToCSV} className="bg-white dark:bg-zinc-950">
+                        <Download className="mr-2 h-4 w-4" /> Export Reviews
+                    </Button>
+                    <div className="text-right">
+                        <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                            {averageRating}
+                        </p>
+                        <p className="text-sm text-gray-500">
+                            Average Rating ({reviews.length} reviews)
+                        </p>
+                    </div>
                 </div>
             </div>
 

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Search, MoreVertical, Mail, Phone, Edit, Trash2, Loader2 } from "lucide-react";
+import { Search, MoreVertical, Mail, Phone, Edit, Trash2, Loader2, Filter, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -40,6 +40,7 @@ const Customers = () => {
     const [editForm, setEditForm] = useState({ display_name: "", email: "" });
     const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
     const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
+    const [statusFilter, setStatusFilter] = useState("all");
 
     useEffect(() => {
         fetchCustomers();
@@ -81,6 +82,31 @@ const Customers = () => {
         toast({ title: "Action not supported", description: "Customer deletion is disabled for security reasons." });
     };
 
+    const exportToCSV = () => {
+        if (!customers.length) return;
+        const headers = ["ID", "Name", "Email", "Orders", "Total Spent", "Joined", "Status"];
+        const csvRows = customers.map(customer => [
+            customer._id,
+            customer.display_name || "N/A",
+            customer.email,
+            customer.totalOrders || 0,
+            `LKR ${customer.totalSpent || 0}`,
+            new Date(customer.created_at).toLocaleDateString(),
+            customer.is_blocked ? "Blocked" : "Active"
+        ]);
+        const csvContent = [headers, ...csvRows].map(e => e.join(",")).join("\n");
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement("a");
+        const url = URL.createObjectURL(blob);
+        link.setAttribute("href", url);
+        link.setAttribute("download", `customers_report_${new Date().toISOString().split('T')[0]}.csv`);
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        toast({ title: "CSV Exported", description: "Customer list has been exported." });
+    };
+
     const getInitials = (name: string) => {
         return name
             .split(' ')
@@ -96,18 +122,38 @@ const Customers = () => {
                     <h1 className="text-3xl font-bold tracking-tight text-gray-900 dark:text-white">Customers</h1>
                     <p className="text-gray-500 dark:text-gray-400 mt-1">Manage your customer base and view their order history.</p>
                 </div>
+                <Button variant="outline" onClick={exportToCSV} className="bg-white dark:bg-zinc-950">
+                    <Download className="mr-2 h-4 w-4" /> Export Customers
+                </Button>
             </div>
 
             <div className="bg-white dark:bg-zinc-900 rounded-lg shadow-sm border border-gray-200 dark:border-gray-800 overflow-hidden">
                 <div className="p-4 border-b border-gray-200 dark:border-gray-800 flex flex-col sm:flex-row gap-4 justify-between items-center bg-gray-50/50 dark:bg-zinc-900/50">
-                    <div className="relative w-full sm:w-96">
-                        <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
-                        <Input
-                            placeholder="Search customers by name, email, or phone..."
-                            className="pl-9 bg-white dark:bg-zinc-950"
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                        />
+                    <div className="flex items-center gap-4 w-full sm:w-auto">
+                        <div className="relative w-full sm:w-80">
+                            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
+                            <Input
+                                placeholder="Search customers..."
+                                className="pl-9 bg-white dark:bg-zinc-950"
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                            />
+                        </div>
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <Button variant="outline" className="bg-white dark:bg-zinc-950">
+                                    <Filter className="mr-2 h-4 w-4" /> 
+                                    {statusFilter === "all" ? "All Status" : statusFilter.charAt(0).toUpperCase() + statusFilter.slice(1)}
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                                <DropdownMenuLabel>Filter by Status</DropdownMenuLabel>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem onClick={() => setStatusFilter("all")}>All Status</DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => setStatusFilter("active")}>Active</DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => setStatusFilter("blocked")}>Blocked</DropdownMenuItem>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
                     </div>
                 </div>
 
@@ -131,13 +177,13 @@ const Customers = () => {
                                         <Loader2 className="mx-auto h-6 w-6 animate-spin text-primary" />
                                     </td>
                                 </tr>
-                            ) : customers.filter(c => c.display_name?.toLowerCase().includes(searchTerm.toLowerCase()) || c.email?.toLowerCase().includes(searchTerm.toLowerCase())).length === 0 ? (
-                                <tr>
-                                    <td colSpan={7} className="px-6 py-8 text-center text-gray-500">
-                                        No customers found
-                                    </td>
-                                </tr>
-                            ) : customers.filter(c => c.display_name?.toLowerCase().includes(searchTerm.toLowerCase()) || c.email?.toLowerCase().includes(searchTerm.toLowerCase())).map((customer) => (
+                            ) : customers.filter(c => {
+                                const matchesSearch = c.display_name?.toLowerCase().includes(searchTerm.toLowerCase()) || c.email?.toLowerCase().includes(searchTerm.toLowerCase());
+                                const matchesStatus = statusFilter === "all" || 
+                                                     (statusFilter === "active" && !c.is_blocked) || 
+                                                     (statusFilter === "blocked" && c.is_blocked);
+                                return matchesSearch && matchesStatus;
+                            }).map((customer) => (
                                 <tr key={customer._id} className="hover:bg-gray-50/50 dark:hover:bg-zinc-800/50 transition-colors group">
                                     <td className="px-6 py-4">
                                         <div className="flex items-center gap-3">

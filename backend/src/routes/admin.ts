@@ -17,13 +17,15 @@ router.get('/settings/payment-methods', async (req: Request, res: Response): Pro
             settings = await Settings.create({
                 payment_methods: {
                     stripe: true,
-                    paypal: false,
                     cod: true,
                 }
             });
         }
 
-        res.json(settings.payment_methods);
+        res.json({
+            stripe: settings.payment_methods.stripe,
+            cod: settings.payment_methods.cod,
+        });
     } catch (err: any) {
         console.error('Error fetching payment settings:', err);
         res.status(500).json({ error: err.message || 'Failed to fetch payment settings' });
@@ -33,11 +35,11 @@ router.get('/settings/payment-methods', async (req: Request, res: Response): Pro
 /**
  * PUT /api/admin/settings/payment-methods
  * Update payment method settings (admin only)
- * Body: { stripe?: boolean, paypal?: boolean, cod?: boolean }
+ * Body: { stripe?: boolean, cod?: boolean }
  */
 router.put('/settings/payment-methods', requireAuth, requireAdmin, async (req: Request, res: Response): Promise<void> => {
     try {
-        const { stripe, paypal, cod } = req.body;
+        const { stripe, cod } = req.body;
 
         let settings = await Settings.findOne();
         
@@ -45,14 +47,12 @@ router.put('/settings/payment-methods', requireAuth, requireAdmin, async (req: R
             settings = await Settings.create({
                 payment_methods: {
                     stripe: stripe !== undefined ? stripe : true,
-                    paypal: paypal !== undefined ? paypal : false,
                     cod: cod !== undefined ? cod : true,
                 }
             });
         } else {
             // Update only the fields that were provided
             if (stripe !== undefined) settings.payment_methods.stripe = stripe;
-            if (paypal !== undefined) settings.payment_methods.paypal = paypal;
             if (cod !== undefined) settings.payment_methods.cod = cod;
             
             await settings.save();

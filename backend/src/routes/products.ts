@@ -1,8 +1,23 @@
 import { Router, Request, Response } from 'express';
 import Product from '../models/Product';
 import { requireAuth, requireAdmin } from '../middleware/auth';
+import cloudinary from '../config/cloudinary';
 
 const router = Router();
+
+// Helper to upload to Cloudinary
+const uploadToCloudinary = async (imageStr: string) => {
+    if (!imageStr || !imageStr.startsWith('data:image')) return imageStr;
+    try {
+        const uploadResponse = await cloudinary.uploader.upload(imageStr, {
+            folder: 'sparkle_bangles',
+        });
+        return uploadResponse.secure_url;
+    } catch (err) {
+        console.error('Cloudinary upload error:', err);
+        throw new Error('Image upload failed');
+    }
+};
 
 /**
  * GET /api/products
@@ -54,16 +69,23 @@ router.get('/:id', async (req: Request, res: Response): Promise<void> => {
  */
 router.post('/', requireAuth, requireAdmin, async (req: Request, res: Response): Promise<void> => {
     try {
+        let { image, ...rest } = req.body;
+        
+        if (image) {
+            image = await uploadToCloudinary(image);
+        }
+
         const product = await Product.create({
-            ...req.body,
+            ...rest,
+            image,
             rating: req.body.rating || 0,
             reviews: 0,
             inStock: req.body.inStock !== false,
         });
         res.status(201).json(product);
-    } catch (err) {
+    } catch (err: any) {
         console.error('Error creating product:', err);
-        res.status(500).json({ error: 'Failed to create product' });
+        res.status(500).json({ error: err.message || 'Failed to create product' });
     }
 });
 
@@ -73,9 +95,15 @@ router.post('/', requireAuth, requireAdmin, async (req: Request, res: Response):
  */
 router.put('/:id', requireAuth, requireAdmin, async (req: Request, res: Response): Promise<void> => {
     try {
+        let updateData = { ...req.body };
+        
+        if (updateData.image && updateData.image.startsWith('data:image')) {
+            updateData.image = await uploadToCloudinary(updateData.image);
+        }
+
         const product = await Product.findByIdAndUpdate(
             req.params.id,
-            { $set: req.body },
+            { $set: updateData },
             { new: true, runValidators: true }
         );
         if (!product) {
@@ -83,8 +111,9 @@ router.put('/:id', requireAuth, requireAdmin, async (req: Request, res: Response
             return;
         }
         res.json(product);
-    } catch (err) {
-        res.status(500).json({ error: 'Failed to update product' });
+    } catch (err: any) {
+        console.error('Error updating product:', err);
+        res.status(500).json({ error: err.message || 'Failed to update product' });
     }
 });
 

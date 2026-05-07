@@ -212,23 +212,27 @@ const Profile: React.FC = () => {
       <>
         <SEO title="Login / Register" />
 
-        <div className="min-h-screen flex flex-col">
+        <div className="min-h-screen flex flex-col" style={{
+          backgroundImage: 'url("data:image/svg+xml,%3Csvg width=\'100\' height=\'100\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cdefs%3E%3ClinearGradient id=\'bg\' x1=\'0%25\' y1=\'0%25\' x2=\'100%25\' y2=\'100%25\'%3E%3Cstop offset=\'0%25\' style=\'stop-color:rgb(253,245,247);stop-opacity:1\' /%3E%3Cstop offset=\'50%25\' style=\'stop-color:rgb(255,255,255);stop-opacity:1\' /%3E%3Cstop offset=\'100%25\' style=\'stop-color:rgb(245,243,255);stop-opacity:1\' /%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width=\'100\' height=\'100\' fill=\'url(%23bg)\' /%3E%3Ccircle cx=\'50\' cy=\'50\' r=\'30\' fill=\'none\' stroke=\'%23d4a574\' stroke-width=\'0.5\' opacity=\'0.3\' /%3E%3Ccircle cx=\'50\' cy=\'50\' r=\'20\' fill=\'none\' stroke=\'%23d4a574\' stroke-width=\'0.5\' opacity=\'0.2\' /%3E%3Cpath d=\'M 30 30 Q 40 20 50 30 T 70 30\' fill=\'none\' stroke=\'%23d4a574\' stroke-width=\'0.8\' opacity=\'0.15\' /%3E%3Cpath d=\'M 30 70 Q 40 80 50 70 T 70 70\' fill=\'none\' stroke=\'%23d4a574\' stroke-width=\'0.8\' opacity=\'0.15\' /%3E%3C/svg%3E")',
+          backgroundRepeat: 'repeat',
+          backgroundSize: '100px 100px',
+        }}>
           <Navbar />
 
           <main className="flex-1 flex items-center justify-center py-12">
-            <div className="w-full max-w-md px-4">
-              <div className="text-center mb-8">
-                <h1 className="font-serif text-3xl font-bold mb-2">Welcome</h1>
-                <p className="font-sans text-muted-foreground">
+            <div className="w-full max-w-md px-3 sm:px-4">
+              <div className="text-center mb-6 sm:mb-8">
+                <h1 className="font-serif text-2xl sm:text-3xl font-bold mb-2">Welcome</h1>
+                <p className="font-sans text-sm sm:text-base text-muted-foreground">
                   Sign in to your account or create a new one
                 </p>
               </div>
 
-              <div className="bg-card rounded-xl p-6 shadow-soft">
+              <div className="bg-card rounded-xl p-5 sm:p-6 shadow-soft">
                 <Tabs defaultValue="login" className="w-full">
-                  <TabsList className="grid w-full grid-cols-2 mb-6 overflow-x-auto sm:overflow-visible">
-                    <TabsTrigger value="login">Login</TabsTrigger>
-                    <TabsTrigger value="register">Register</TabsTrigger>
+                  <TabsList className="grid w-full grid-cols-2 mb-5 sm:mb-6 overflow-x-auto sm:overflow-visible">
+                    <TabsTrigger value="login" className="text-sm sm:text-base">Login</TabsTrigger>
+                    <TabsTrigger value="register" className="text-sm sm:text-base">Register</TabsTrigger>
                   </TabsList>
 
                   <TabsContent value="login">
@@ -600,7 +604,7 @@ const Profile: React.FC = () => {
                     ) : dashboardData?.user?.wishlist?.length > 0 ? (
                       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6">
                         {dashboardData.user.wishlist.map((product) => (
-                          <ProductCard key={product._id} product={product} />
+                          <ProductCard key={product.id} product={product} />
                         ))}
                       </div>
                     ) : (

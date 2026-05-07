@@ -14,6 +14,7 @@ import reviewRoutes from './routes/reviews';
 import paymentsRoutes from './routes/payments';
 import userRoutes from './routes/users';
 import adminRoutes from './routes/admin';
+import slideRoutes from './routes/slides';
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -43,7 +44,7 @@ app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
 // Health check
 app.get('/api/health', (_req, res) => {
-    res.json({ status: 'ok', message: 'Sparkle Bangles API is running 🚀' });
+    res.json({ status: 'ok', message: 'Sparkle Bangles API v2 (AI Enabled) is running 🚀' });
 });
 
 // API Routes
@@ -55,6 +56,7 @@ app.use('/api/reviews', reviewRoutes);
 app.use('/api/payments', paymentsRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/slides', slideRoutes);
 
 // 404 handler
 app.use((_req, res) => {

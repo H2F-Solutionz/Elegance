@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Plus, Search, Filter, MoreHorizontal, Edit, Trash2, Loader2 } from "lucide-react";
+import { Plus, Search, Filter, MoreHorizontal, Edit, Trash2, Loader2, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -65,6 +65,7 @@ const Products = () => {
         isHotSale: false,
         isLatestArrival: false
     });
+    const [selectedCategory, setSelectedCategory] = useState("all");
 
     const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -83,6 +84,30 @@ const Products = () => {
         } finally {
             setIsLoading(false);
         }
+    };
+
+    const exportToCSV = () => {
+        if (!products.length) return;
+        const headers = ["ID", "Name", "Category", "Price", "Stock", "Status"];
+        const csvRows = products.map(product => [
+            product._id || product.id,
+            product.name,
+            product.category,
+            `LKR ${product.price}`,
+            product.stock,
+            product.inStock ? "In Stock" : "Out of Stock"
+        ]);
+        const csvContent = [headers, ...csvRows].map(e => e.join(",")).join("\n");
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement("a");
+        const url = URL.createObjectURL(blob);
+        link.setAttribute("href", url);
+        link.setAttribute("download", `products_report_${new Date().toISOString().split('T')[0]}.csv`);
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        toast({ title: "CSV Exported", description: "Your product list has been exported." });
     };
 
     const handleDelete = async (id: string) => {
@@ -169,11 +194,16 @@ const Products = () => {
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
                     <h1 className="text-3xl font-bold tracking-tight text-gray-900 dark:text-white">Products</h1>
-                    <p className="text-gray-500 dark:text-gray-400 mt-1">Manage your store's inventory.</p>
+                    <p className="text-gray-500 dark:text-gray-400 mt-1">Manage your store's inventory and product details.</p>
                 </div>
-                <Button className="bg-pink-600 hover:bg-pink-700 text-white w-full sm:w-auto" onClick={() => handleOpenDialog()}>
-                    <Plus className="mr-2 h-4 w-4" /> Add Product
-                </Button>
+                <div className="flex items-center gap-3">
+                    <Button variant="outline" onClick={exportToCSV} className="bg-white dark:bg-zinc-950">
+                        <Download className="mr-2 h-4 w-4" /> Export CSV
+                    </Button>
+                    <Button onClick={() => handleOpenDialog()} className="bg-pink-600 hover:bg-pink-700 text-white w-full sm:w-auto">
+                        <Plus className="mr-2 h-4 w-4" /> Add Product
+                    </Button>
+                </div>
             </div>
 
             <div className="bg-white dark:bg-zinc-900 rounded-lg shadow-sm border border-gray-200 dark:border-gray-800 overflow-hidden">
@@ -187,9 +217,22 @@ const Products = () => {
                             onChange={(e) => setSearchTerm(e.target.value)}
                         />
                     </div>
-                    <Button variant="outline" className="w-full sm:w-auto bg-white dark:bg-zinc-950">
-                        <Filter className="mr-2 h-4 w-4" /> Filters
-                    </Button>
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <Button variant="outline" className="w-full sm:w-auto bg-white dark:bg-zinc-950">
+                                <Filter className="mr-2 h-4 w-4" /> 
+                                {selectedCategory === "all" ? "All Categories" : selectedCategory.charAt(0).toUpperCase() + selectedCategory.slice(1)}
+                            </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                            <DropdownMenuLabel>Filter by Category</DropdownMenuLabel>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem onClick={() => setSelectedCategory("all")}>All Categories</DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => setSelectedCategory("women")}>Women</DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => setSelectedCategory("men")}>Men</DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => setSelectedCategory("kids")}>Kids</DropdownMenuItem>
+                        </DropdownMenuContent>
+                    </DropdownMenu>
                 </div>
 
                 <div className="overflow-x-auto">
@@ -211,13 +254,11 @@ const Products = () => {
                                         <Loader2 className="mx-auto h-6 w-6 animate-spin text-primary" />
                                     </td>
                                 </tr>
-                            ) : products.filter(p => p.name.toLowerCase().includes(searchTerm.toLowerCase())).length === 0 ? (
-                                <tr>
-                                    <td colSpan={6} className="px-6 py-8 text-center text-gray-500">
-                                        No products found
-                                    </td>
-                                </tr>
-                            ) : products.filter(p => p.name.toLowerCase().includes(searchTerm.toLowerCase())).map((product) => (
+                            ) : products.filter(p => {
+                                const matchesSearch = p.name.toLowerCase().includes(searchTerm.toLowerCase());
+                                const matchesCategory = selectedCategory === "all" || p.category === selectedCategory;
+                                return matchesSearch && matchesCategory;
+                            }).map((product) => (
                                 <tr key={product._id || product.id} className="hover:bg-gray-50/50 dark:hover:bg-zinc-800/50 transition-colors group">
                                     <td className="px-6 py-4">
                                         <div className="flex items-center gap-4">
@@ -300,85 +341,116 @@ const Products = () => {
             </div>
 
             <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-                <DialogContent className="max-w-[95vw] sm:max-w-[425px] max-h-[90vh] overflow-y-auto">
+                <DialogContent className="max-w-[95vw] sm:max-w-[800px] max-h-[90vh] overflow-y-auto">
                     <DialogHeader>
                         <DialogTitle>{editingProduct ? 'Edit Product' : 'Add New Product'}</DialogTitle>
                         <DialogDescription>
                             Enter the details for the product. Click save when you're done.
                         </DialogDescription>
                     </DialogHeader>
-                    <form onSubmit={handleSave} className="space-y-4 pt-4">
-                        <div className="grid grid-cols-1 gap-2 sm:grid-cols-4 sm:items-center sm:gap-4">
-                            <Label htmlFor="name" className="sm:text-right">Name</Label>
-                            <Input id="name" value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})} className="col-span-3" required />
-                        </div>
-                        <div className="grid grid-cols-1 gap-2 sm:grid-cols-4 sm:items-center sm:gap-4">
-                            <Label htmlFor="category" className="sm:text-right">Category</Label>
-                            <select 
-                                id="category" 
-                                value={formData.category} 
-                                onChange={(e) => setFormData({...formData, category: e.target.value})} 
-                                className="col-span-3 flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background"
-                                required
-                            >
-                                <option value="women">Women</option>
-                                <option value="men">Men</option>
-                                <option value="kids">Kids</option>
-                            </select>
-                        </div>
-                        <div className="grid grid-cols-1 gap-2 sm:grid-cols-4 sm:items-start sm:gap-4">
-                            <Label htmlFor="description" className="sm:text-right sm:mt-2">Description</Label>
-                            <textarea 
-                                id="description" 
-                                value={formData.description} 
-                                onChange={(e) => setFormData({...formData, description: e.target.value})} 
-                                className="col-span-3 flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm" 
-                                required 
-                            />
-                        </div>
-                        <div className="grid grid-cols-1 gap-2 sm:grid-cols-4 sm:items-center sm:gap-4">
-                            <Label htmlFor="price" className="sm:text-right">Price (LKR)</Label>
-                            <Input id="price" type="number" step="0.01" value={formData.price} onChange={(e) => setFormData({...formData, price: e.target.value})} className="col-span-3" required />
-                        </div>
-                        <div className="grid grid-cols-1 gap-2 sm:grid-cols-4 sm:items-center sm:gap-4">
-                            <Label htmlFor="stock" className="sm:text-right">Stock</Label>
-                            <Input id="stock" type="number" value={formData.stock} onChange={(e) => setFormData({...formData, stock: e.target.value})} className="col-span-3" required />
-                        </div>
-                        <div className="grid grid-cols-1 gap-2 sm:grid-cols-4 sm:items-start sm:gap-4">
-                            <Label className="sm:text-right sm:mt-2">Image</Label>
-                            <div className="col-span-3 space-y-2">
-                                <Input id="image" placeholder="Image URL" value={formData.image.startsWith('data:') ? 'Uploaded Base64 Image' : formData.image} onChange={(e) => setFormData({...formData, image: e.target.value})} />
-                                <div className="flex items-center gap-2">
-                                    <span className="text-xs text-gray-500">OR</span>
-                                    <Button type="button" variant="outline" size="sm" onClick={() => fileInputRef.current?.click()}>
-                                        Upload File
-                                    </Button>
-                                    <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" accept="image/*" />
+                    <form onSubmit={handleSave} className="pt-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
+                            {/* Left Column */}
+                            <div className="space-y-4">
+                                <div className="space-y-2">
+                                    <Label htmlFor="name">Name</Label>
+                                    <Input id="name" value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})} placeholder="e.g. Gold Plated Bangle" required />
                                 </div>
-                                {formData.image && (
-                                    <img src={formData.image} alt="Preview" className="h-20 w-20 object-cover rounded border" />
-                                )}
+                                <div className="space-y-2">
+                                    <Label htmlFor="category">Category</Label>
+                                    <select 
+                                        id="category" 
+                                        value={formData.category} 
+                                        onChange={(e) => setFormData({...formData, category: e.target.value})} 
+                                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background"
+                                        required
+                                    >
+                                        <option value="women">Women</option>
+                                        <option value="men">Men</option>
+                                        <option value="kids">Kids</option>
+                                    </select>
+                                </div>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="space-y-2">
+                                        <Label htmlFor="price">Price (LKR)</Label>
+                                        <Input id="price" type="number" step="0.01" value={formData.price} onChange={(e) => setFormData({...formData, price: e.target.value})} required />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label htmlFor="stock">Stock</Label>
+                                        <Input id="stock" type="number" value={formData.stock} onChange={(e) => setFormData({...formData, stock: e.target.value})} required />
+                                    </div>
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="material">Material</Label>
+                                    <Input id="material" value={formData.material} onChange={(e) => setFormData({...formData, material: e.target.value})} placeholder="e.g. 24k Gold, Silver" />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label>Features</Label>
+                                    <div className="flex gap-4 p-2 border rounded-md bg-gray-50 dark:bg-zinc-900/50">
+                                        <label className="flex items-center gap-2 text-sm cursor-pointer">
+                                            <input type="checkbox" checked={formData.isHotSale} onChange={(e) => setFormData({...formData, isHotSale: e.target.checked})} className="accent-pink-600" />
+                                            Hot Sale
+                                        </label>
+                                        <label className="flex items-center gap-2 text-sm cursor-pointer">
+                                            <input type="checkbox" checked={formData.isLatestArrival} onChange={(e) => setFormData({...formData, isLatestArrival: e.target.checked})} className="accent-pink-600" />
+                                            Latest Arrival
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Right Column */}
+                            <div className="space-y-4">
+                                <div className="space-y-2">
+                                    <Label htmlFor="description">Description</Label>
+                                    <textarea 
+                                        id="description" 
+                                        value={formData.description} 
+                                        onChange={(e) => setFormData({...formData, description: e.target.value})} 
+                                        className="flex min-h-[100px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:ring-2 focus:ring-pink-500 outline-none" 
+                                        placeholder="Enter product details..."
+                                        required 
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label>Product Image</Label>
+                                    <div className="space-y-3 p-4 border-2 border-dashed rounded-lg bg-gray-50 dark:bg-zinc-900/50 text-center">
+                                        {formData.image ? (
+                                            <div className="relative group mx-auto w-32 h-32">
+                                                <img src={formData.image} alt="Preview" className="w-32 h-32 object-cover rounded-lg shadow-sm border" />
+                                                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center">
+                                                    <Button type="button" variant="ghost" size="sm" onClick={() => setFormData({...formData, image: ''})} className="text-white hover:text-red-400">Remove</Button>
+                                                </div>
+                                            </div>
+                                        ) : (
+                                            <div className="py-4">
+                                                <div className="h-10 w-10 bg-pink-100 dark:bg-pink-900/30 text-pink-600 rounded-full flex items-center justify-center mx-auto mb-2">
+                                                    <Plus className="h-6 w-6" />
+                                                </div>
+                                                <p className="text-xs text-gray-500 mb-2">Upload product photo</p>
+                                            </div>
+                                        )}
+                                        <div className="flex flex-col gap-2">
+                                            <Input 
+                                                placeholder="Or paste image URL..." 
+                                                value={formData.image.startsWith('data:') ? 'Local Image Selected' : formData.image} 
+                                                onChange={(e) => setFormData({...formData, image: e.target.value})}
+                                                className="text-xs h-8"
+                                            />
+                                            <Button type="button" variant="outline" size="sm" onClick={() => fileInputRef.current?.click()} className="w-full">
+                                                Choose File
+                                            </Button>
+                                            <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" accept="image/*" />
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
-                        <div className="grid grid-cols-1 gap-2 sm:grid-cols-4 sm:items-center sm:gap-4">
-                            <Label htmlFor="material" className="sm:text-right">Material</Label>
-                            <Input id="material" value={formData.material} onChange={(e) => setFormData({...formData, material: e.target.value})} className="col-span-3" />
-                        </div>
-                        <div className="grid grid-cols-1 gap-2 sm:grid-cols-4 sm:items-center sm:gap-4">
-                            <Label className="sm:text-right">Features</Label>
-                            <div className="col-span-3 flex gap-4">
-                                <label className="flex items-center gap-2 text-sm">
-                                    <input type="checkbox" checked={formData.isHotSale} onChange={(e) => setFormData({...formData, isHotSale: e.target.checked})} />
-                                    Hot Sale
-                                </label>
-                                <label className="flex items-center gap-2 text-sm">
-                                    <input type="checkbox" checked={formData.isLatestArrival} onChange={(e) => setFormData({...formData, isLatestArrival: e.target.checked})} />
-                                    Latest
-                                </label>
-                            </div>
-                        </div>
-                        <DialogFooter>
-                            <Button type="submit" className="bg-pink-600 hover:bg-pink-700 text-white">Save Changes</Button>
+                        <DialogFooter className="mt-8 border-t pt-4">
+                            <Button type="button" variant="ghost" onClick={() => setIsDialogOpen(false)}>Cancel</Button>
+                            <Button type="submit" className="bg-pink-600 hover:bg-pink-700 text-white px-8">
+                                {editingProduct ? 'Update Product' : 'Create Product'}
+                            </Button>
                         </DialogFooter>
                     </form>
                 </DialogContent>

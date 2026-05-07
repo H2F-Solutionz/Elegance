@@ -48,10 +48,9 @@ const ProductDetail: React.FC = () => {
   // Payment methods
   const [availablePaymentMethods, setAvailablePaymentMethods] = useState({
     stripe: true,
-    paypal: false,
     cod: true,
   });
-  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState('stripe');
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<'stripe' | 'cod'>('cod');
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -75,9 +74,9 @@ const ProductDetail: React.FC = () => {
         // Set default payment method to first available one
         if (paymentMethods.stripe) {
           setSelectedPaymentMethod('stripe');
-        } else if (paymentMethods.paypal) {
-          setSelectedPaymentMethod('paypal');
         } else if (paymentMethods.cod) {
+          setSelectedPaymentMethod('cod');
+        } else {
           setSelectedPaymentMethod('cod');
         }
         
@@ -96,17 +95,10 @@ const ProductDetail: React.FC = () => {
         }
       } catch (err) {
         console.error('Failed to fetch product data:', err);
-        // Use default if payment methods fetch fails
-        const defaultMethods = { stripe: true, paypal: false, cod: true };
+        // Use COD as the safe fallback if payment methods fetch fails
+        const defaultMethods = { stripe: false, cod: true };
         setAvailablePaymentMethods(defaultMethods);
-        // Set default payment method to first available one
-        if (defaultMethods.stripe) {
-          setSelectedPaymentMethod('stripe');
-        } else if (defaultMethods.paypal) {
-          setSelectedPaymentMethod('paypal');
-        } else if (defaultMethods.cod) {
-          setSelectedPaymentMethod('cod');
-        }
+        setSelectedPaymentMethod('cod');
       } finally {
         setIsLoading(false);
       }
@@ -209,7 +201,6 @@ const ProductDetail: React.FC = () => {
     // Validate selected payment method is available
     const isPaymentMethodAvailable = 
       (selectedPaymentMethod === 'stripe' && availablePaymentMethods.stripe) ||
-      (selectedPaymentMethod === 'paypal' && availablePaymentMethods.paypal) ||
       (selectedPaymentMethod === 'cod' && availablePaymentMethods.cod);
 
     if (!isPaymentMethodAvailable) {
@@ -266,14 +257,8 @@ const ProductDetail: React.FC = () => {
           phone: '',
           email: '',
         });
-      } else if (selectedPaymentMethod === 'paypal') {
-        // Handle PayPal
-        toast({
-          title: "Coming Soon",
-          description: "PayPal payment option is coming soon.",
-        });
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error initiating payment:', error);
       toast({
         title: "Payment failed",
@@ -324,11 +309,11 @@ const ProductDetail: React.FC = () => {
       ]);
       setReviews(updatedReviews);
       setProduct(updatedProduct);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Review error:', err);
       toast({
         title: "Failed to post review",
-        description: err.message || "Please login to leave a review.",
+        description: err instanceof Error ? err.message : "Please login to leave a review.",
         variant: "destructive",
       });
     } finally {
@@ -791,22 +776,16 @@ const ProductDetail: React.FC = () => {
 
             <div className="space-y-3 pt-2">
               <Label>Payment Method *</Label>
-              <RadioGroup value={selectedPaymentMethod} onValueChange={setSelectedPaymentMethod}>
+              <RadioGroup
+                value={selectedPaymentMethod}
+                onValueChange={(value) => setSelectedPaymentMethod(value === 'stripe' ? 'stripe' : 'cod')}
+              >
                 {availablePaymentMethods.stripe && (
                   <div className="flex items-center space-x-3 rounded-lg border border-gray-200 p-3 hover:bg-gray-50 cursor-pointer">
                     <RadioGroupItem value="stripe" id="stripe" />
                     <Label htmlFor="stripe" className="flex-1 cursor-pointer">
                       <div className="font-medium">Credit Card (Stripe)</div>
                       <div className="text-sm text-gray-500">Pay securely with your credit card</div>
-                    </Label>
-                  </div>
-                )}
-                {availablePaymentMethods.paypal && (
-                  <div className="flex items-center space-x-3 rounded-lg border border-gray-200 p-3 hover:bg-gray-50 cursor-pointer">
-                    <RadioGroupItem value="paypal" id="paypal" />
-                    <Label htmlFor="paypal" className="flex-1 cursor-pointer">
-                      <div className="font-medium">PayPal</div>
-                      <div className="text-sm text-gray-500">Pay with your PayPal account</div>
                     </Label>
                   </div>
                 )}
