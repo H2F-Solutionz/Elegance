@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useState } from "react";
 
-export type Theme = "dark" | "light" | "system";
+export type Theme = "light";
 export type ColorTheme = "pink" | "violet" | "emerald" | "gold";
 export type Radius = "0" | "0.5" | "1.0";
 
@@ -22,7 +22,7 @@ type ThemeProviderState = {
 };
 
 const initialState: ThemeProviderState = {
-    theme: "system",
+    theme: "light",
     setTheme: () => null,
     color: "pink",
     setColor: () => null,
@@ -49,7 +49,7 @@ export function ThemeProvider({
     ...props
 }: ThemeProviderProps) {
     const [theme, setTheme] = useState<Theme>(
-        () => (localStorage.getItem(`${storageKey}-theme`) as Theme) || defaultTheme
+        () => (localStorage.getItem(`${storageKey}-theme`) as Theme) || "light"
     );
 
     const [color, setColor] = useState<ColorTheme>(
@@ -62,17 +62,9 @@ export function ThemeProvider({
 
     useEffect(() => {
         const root = window.document.documentElement;
-        root.classList.remove("light", "dark");
-
-        if (theme === "system") {
-            const systemTheme = window.matchMedia("(prefers-color-scheme: dark)")
-                .matches
-                ? "dark"
-                : "light";
-            root.classList.add(systemTheme);
-        } else {
-            root.classList.add(theme);
-        }
+        // Force light theme only
+        root.classList.remove("dark");
+        root.classList.add("light");
     }, [theme]);
 
     useEffect(() => {
@@ -89,9 +81,10 @@ export function ThemeProvider({
 
     const value = {
         theme,
-        setTheme: (theme: Theme) => {
-            localStorage.setItem(`${storageKey}-theme`, theme);
-            setTheme(theme);
+        setTheme: (_theme: Theme) => {
+            // Theme is locked to light. Persist light so legacy saved values don't re-enable dark.
+            localStorage.setItem(`${storageKey}-theme`, "light");
+            setTheme("light");
         },
         color,
         setColor: (newColor: ColorTheme) => {
