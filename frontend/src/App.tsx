@@ -29,7 +29,7 @@ import Settings from "./pages/admin/Settings";
 const queryClient = new QueryClient();
 
 const App = () => (
-  <ThemeProvider defaultTheme="system" defaultColor="pink" defaultRadius="0.5">
+  <ThemeProvider defaultTheme="light" defaultColor="pink" defaultRadius="0.5">
     <HelmetProvider>
       <QueryClientProvider client={queryClient}>
         <CartProvider>

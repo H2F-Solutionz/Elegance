@@ -42,7 +42,7 @@ const colorPalettes: Record<ColorTheme, string> = {
 
 export function ThemeProvider({
     children,
-    defaultTheme = "system",
+    defaultTheme = "light",
     defaultColor = "pink",
     defaultRadius = "0.5",
     storageKey = "vite-ui-theme",
